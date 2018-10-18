@@ -336,3 +336,50 @@ cond_broadcast (struct condition *cond, struct lock *lock)
   while (!list_empty (&cond->waiters))
     cond_signal (cond, lock);
 }
+
+//Added
+void 
+sema_up_all(struct semaphore *sema, int64_t tick){
+  enum intr_level old_level;
+  struct list_elem *to_awaken;
+  struct thread *t=NULL;
+
+
+  ASSERT (sema != NULL);
+  old_level = intr_disable ();
+  /*if below lines are uncommented then while*/
+  if (!list_empty(&sema->waiters)) {
+    to_awaken = list_begin(&sema->waiters);
+    t = list_entry(to_awaken, struct thread, elem);
+    if (tick >= t->tick_to_wake)   {
+      list_pop_front(&sema->waiters);
+      thread_unblock(t);
+      sema->value++;
+      /*Issue with the commented part. Come back to it*/
+      // to_awaken = list_next(&to_awaken);    
+      // t = list_entry(to_awaken, struct thread, elem);
+      // if(list_empty(&sema->waiters))
+      //   break;
+    }
+  }
+
+  intr_set_level(old_level);
+}
+
+//Added
+void sema_down_ordered (struct semaphore *sema, list_less_func *order_by, void *aux) 
+{
+  enum intr_level old_level;
+
+  ASSERT (sema != NULL);
+  ASSERT (!intr_context ());
+
+  old_level = intr_disable ();
+  while (sema->value == 0) 
+    {
+      list_insert_ordered (&sema->waiters, &thread_current ()->elem, order_by, aux);
+      thread_block ();
+    }
+  sema->value--;
+  intr_set_level (old_level);
+}

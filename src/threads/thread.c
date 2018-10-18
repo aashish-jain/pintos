@@ -37,6 +37,17 @@ static struct thread *initial_thread;
 /* Lock used by allocate_tid(). */
 static struct lock tid_lock;
 
+// Added begins
+/* List of all sleeping thread */
+static struct list sleep_list;
+
+/* Semaphore for accessing sleep_list */
+struct semaphore sleep_list_sema;
+
+/* Using semaphores for sleeping */
+struct semaphore waker;
+//Added ends
+
 /* Stack frame for kernel_thread(). */
 struct kernel_thread_frame 
   {
@@ -71,6 +82,13 @@ static void schedule (void);
 void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
 
+
+// Added begins
+list_less_func *sleep_list_less(const struct list_elem *a,
+                          const struct list_elem *b,
+                          void *aux UNUSED);
+//Added ends
+
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
    general and it is possible in this case only because loader.S
@@ -92,6 +110,12 @@ thread_init (void)
   lock_init (&tid_lock);
   list_init (&ready_list);
   list_init (&all_list);
+
+  //Added begins
+  list_init(&sleep_list);
+  sema_init(&sleep_list_sema,1);
+  sema_init(&waker,0);
+  //Added ends
 
   /* Set up a thread structure for the running thread. */
   initial_thread = running_thread ();
@@ -464,6 +488,10 @@ init_thread (struct thread *t, const char *name, int priority)
   t->priority = priority;
   t->magic = THREAD_MAGIC;
 
+  //Added begins
+  t->tick_to_wake = 0;
+  //Added ends
+
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);
   intr_set_level (old_level);
@@ -582,3 +610,40 @@ allocate_tid (void)
 /* Offset of `stack' member within `struct thread'.
    Used by switch.S, which can't figure it out on its own. */
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);
+
+
+//Added
+/* Order in which the sleep_list has to be sorted*/
+list_less_func 
+*sleep_list_less(const struct list_elem *a,
+                             const struct list_elem *b,
+                             void *aux UNUSED){
+  struct thread *t1=list_entry(a,struct thread, elem),*t2=list_entry(b,struct thread, elem);
+  return (int64_t)t1->tick_to_wake < (int64_t)t2->tick_to_wake;
+}
+
+
+//Added
+/* Adds the current thread to sleep_list. This function must be called with one of the synchronization
+   primitives in synch.h. */
+void 
+thread_sleep(int64_t ticks){
+  struct thread *t=thread_current();
+
+  enum intr_level old_level;
+
+  //Doesn't have to sleep
+  if (ticks <= 0)
+    return;
+  t->tick_to_wake = ticks + timer_ticks ();
+  sema_down_ordered(&waker, sleep_list_less, NULL);  
+  return;
+}
+
+//Added
+/* Wakes up sleeping threads in the sleep_list if it's time */
+void 
+thread_wake(int64_t wake_at){
+  sema_up_all(&waker, wake_at);
+  return;
+}

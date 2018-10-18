@@ -82,10 +82,6 @@ static tid_t allocate_tid (void);
 bool sleep_list_less( const struct list_elem *a,
                       const struct list_elem *b,
                       void *aux UNUSED);
-
-bool priority_order_condition(const struct list_elem *a,
-                              const struct list_elem *b,
-                              void *aux UNUSED);
 //Added ends
 
 /* Initializes the threading system by transforming the code
@@ -271,6 +267,11 @@ thread_unblock (struct thread *t)
   //Added ends
 
   t->status = THREAD_READY;
+
+  //Added begins
+  if(thread_current()!=idle_thread && thread_get_priority()<t->priority)
+    thread_yield();
+  //Added ends
   intr_set_level (old_level);
 }
 

@@ -109,13 +109,31 @@ void
 sema_up (struct semaphore *sema) 
 {
   enum intr_level old_level;
-
+  struct list_elem *max;
+  struct thread *t;
   ASSERT (sema != NULL);
 
   old_level = intr_disable ();
+
+  //Actual code
+  /*
   if (!list_empty (&sema->waiters)) 
     thread_unblock (list_entry (list_pop_front (&sema->waiters),
                                 struct thread, elem));
+  */
+
+  //Added begins
+  //Making sure that waiters has atleast one thread waiting
+  if(!list_empty(&sema->waiters)){
+    //Min of greater function yeilds max priority thread
+    max = list_min(&sema->waiters, priority_order_condition, NULL);
+    t = list_entry(max,struct thread,elem);
+    list_remove(max);
+    thread_unblock(t);
+  }
+  //Added ends
+
+  
   sema->value++;
   intr_set_level (old_level);
 }
@@ -344,7 +362,6 @@ sema_up_all(struct semaphore *sema, int64_t tick){
   struct list_elem *to_awaken;
   struct thread *t=NULL;
 
-
   ASSERT (sema != NULL);
   old_level = intr_disable ();
   /*if below lines are uncommented then while*/
@@ -354,20 +371,18 @@ sema_up_all(struct semaphore *sema, int64_t tick){
     if (tick >= t->tick_to_wake)   {
       list_pop_front(&sema->waiters);
       thread_unblock(t);
+      // waked_thread=true;
       sema->value++;
-      /*Issue with the commented part. Come back to it*/
-      // to_awaken = list_next(&to_awaken);    
-      // t = list_entry(to_awaken, struct thread, elem);
-      // if(list_empty(&sema->waiters))
-      //   break;
+      //for simultaneous threads
+      // sema_up_all(sema, tick);
     }
   }
-
   intr_set_level(old_level);
 }
 
 //Added
-void sema_down_ordered (struct semaphore *sema, list_less_func *order_by, void *aux) 
+void 
+sema_down_ordered (struct semaphore *sema, list_less_func *order_by, void *aux) 
 {
   enum intr_level old_level;
 

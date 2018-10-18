@@ -144,6 +144,10 @@ int thread_get_load_avg (void);
 // Added begins //
 void thread_sleep (int64_t);
 void thread_wake (int64_t);
+
+bool priority_order_condition(const struct list_elem *a,
+                              const struct list_elem *b,
+                              void *aux UNUSED);
 //Added ends//
 
 #endif /* threads/thread.h */

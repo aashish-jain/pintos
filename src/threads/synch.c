@@ -130,12 +130,10 @@ sema_up (struct semaphore *sema)
     max = list_min(&sema->waiters, priority_order_condition, NULL);
     t = list_entry(max,struct thread,elem);
     list_remove(max);
-    thread_unblock(t);
     waked=true;
     //Increment sema_value for thread if it has to be run first
     sema->value++;
-    if(thread_get_priority() < t->priority)
-      thread_yield();
+    thread_unblock(t);
   }
   //Added ends
 

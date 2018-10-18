@@ -111,6 +111,7 @@ sema_up (struct semaphore *sema)
   enum intr_level old_level;
   struct list_elem *max;
   struct thread *t;
+  bool waked=false;
   ASSERT (sema != NULL);
 
   old_level = intr_disable ();
@@ -130,11 +131,16 @@ sema_up (struct semaphore *sema)
     t = list_entry(max,struct thread,elem);
     list_remove(max);
     thread_unblock(t);
+    waked=true;
+    //Increment sema_value for thread if it has to be run first
+    sema->value++;
+    if(thread_get_priority() < t->priority)
+      thread_yield();
   }
   //Added ends
 
-  
-  sema->value++;
+  if(!waked)
+    sema->value++;
   intr_set_level (old_level);
 }
 

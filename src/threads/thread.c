@@ -38,11 +38,6 @@ static struct thread *initial_thread;
 static struct lock tid_lock;
 
 // Added begins
-/* List of all sleeping thread */
-static struct list sleep_list;
-
-/* Semaphore for accessing sleep_list */
-struct semaphore sleep_list_sema;
 
 /* Using semaphores for sleeping */
 struct semaphore waker;
@@ -84,9 +79,13 @@ static tid_t allocate_tid (void);
 
 
 // Added begins
-list_less_func *sleep_list_less(const struct list_elem *a,
-                          const struct list_elem *b,
-                          void *aux UNUSED);
+bool sleep_list_less( const struct list_elem *a,
+                      const struct list_elem *b,
+                      void *aux UNUSED);
+
+bool priority_order_condition(const struct list_elem *a,
+                              const struct list_elem *b,
+                              void *aux UNUSED);
 //Added ends
 
 /* Initializes the threading system by transforming the code
@@ -112,8 +111,6 @@ thread_init (void)
   list_init (&all_list);
 
   //Added begins
-  list_init(&sleep_list);
-  sema_init(&sleep_list_sema,1);
   sema_init(&waker,0);
   //Added ends
 
@@ -614,8 +611,8 @@ uint32_t thread_stack_ofs = offsetof (struct thread, stack);
 
 //Added
 /* Order in which the sleep_list has to be sorted*/
-list_less_func 
-*sleep_list_less(const struct list_elem *a,
+bool
+sleep_list_less(const struct list_elem *a,
                              const struct list_elem *b,
                              void *aux UNUSED){
   struct thread *t1=list_entry(a,struct thread, elem),*t2=list_entry(b,struct thread, elem);
@@ -624,14 +621,11 @@ list_less_func
 
 
 //Added
-/* Adds the current thread to sleep_list. This function must be called with one of the synchronization
+/* Adds the current thread to waker_waiters. This function must be called with one of the synchronization
    primitives in synch.h. */
 void 
 thread_sleep(int64_t ticks){
   struct thread *t=thread_current();
-
-  enum intr_level old_level;
-
   //Doesn't have to sleep
   if (ticks <= 0)
     return;
@@ -641,7 +635,7 @@ thread_sleep(int64_t ticks){
 }
 
 //Added
-/* Wakes up sleeping threads in the sleep_list if it's time */
+/* Wakes up sleeping threads in the waker_waiters if it's time */
 void 
 thread_wake(int64_t wake_at){
   sema_up_all(&waker, wake_at);

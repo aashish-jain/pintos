@@ -222,6 +222,11 @@ thread_create (const char *name, int priority,
   /* Add to run queue. */
   thread_unblock (t);
 
+  //Added begins
+  if(thread_get_priority() < t->priority)
+  thread_yield();
+  //Added ends
+
   return tid;
 }
 
@@ -258,7 +263,13 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  list_push_back (&ready_list, &t->elem);
+  // //Actual code
+  // list_push_back (&ready_list, &t->elem);
+  
+  //Added begins
+  list_insert_ordered (&ready_list, &t->elem, priority_order_condition, NULL);
+  //Added ends
+
   t->status = THREAD_READY;
   intr_set_level (old_level);
 }
@@ -328,8 +339,14 @@ thread_yield (void)
   ASSERT (!intr_context ());
 
   old_level = intr_disable ();
-  if (cur != idle_thread) 
-    list_push_back (&ready_list, &cur->elem);
+  if (cur != idle_thread){
+    // //Actual code 
+    // list_push_back (&ready_list, &cur->elem);
+    
+    //Added begins  
+    list_insert_ordered (&ready_list, &cur->elem, priority_order_condition, NULL);
+    //Added ends
+  }
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
@@ -356,7 +373,22 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority) 
 {
-  thread_current ()->priority = new_priority;
+  // //Actual code 
+  // thread_current ()->priority = new_priority;
+  struct thread *t =thread_current (); 
+
+  t->priority = new_priority;  
+  /*Change in priority means change in order of ready list*/
+  if (t->status == THREAD_READY ){
+    //Remove it from the ready_list
+    list_remove(&t->elem);
+    //Add it to appropriate postion in the ready_list
+    list_insert_ordered(&ready_list, &t->elem, priority_order_condition, NULL);
+  }
+  //Pre-empt if low priority
+  else if(t->status == THREAD_RUNNING && !list_empty(&ready_list))
+    if(t->priority < list_entry(list_front(&ready_list), struct thread, elem)->priority)
+        thread_yield();       
 }
 
 /* Returns the current thread's priority. */
@@ -640,4 +672,14 @@ void
 thread_wake(int64_t wake_at){
   sema_up_all(&waker, wake_at);
   return;
+}
+
+//Added
+/* Order in which the ready_list has to be sorted*/
+bool 
+priority_order_condition(const struct list_elem *a,
+                             const struct list_elem *b,
+                             void *aux UNUSED){
+  struct thread *t1=list_entry(a,struct thread, elem),*t2=list_entry(b,struct thread, elem);
+  return t1->priority > t2->priority;
 }

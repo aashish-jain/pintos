@@ -369,17 +369,17 @@ sema_up_all(struct semaphore *sema, int64_t tick){
   ASSERT (sema != NULL);
   old_level = intr_disable ();
   /*if below lines are uncommented then while*/
-  if (!list_empty(&sema->waiters)) {
+  while (!list_empty(&sema->waiters)) {
     to_awaken = list_begin(&sema->waiters);
     t = list_entry(to_awaken, struct thread, elem);
     if (tick >= t->tick_to_wake)   {
       list_pop_front(&sema->waiters);
-      thread_unblock(t);
-      // waked_thread=true;
       sema->value++;
-      //for simultaneous threads
-      // sema_up_all(sema, tick);
+      thread_unblock(t);
     }
+    //Only for while
+    else 
+      break;
   }
   intr_set_level(old_level);
 }

@@ -216,15 +216,27 @@ lock_init (struct lock *lock)
 void
 lock_acquire (struct lock *lock)
 {
-  struct thread *cur = thread_current();
+  struct thread *cur = thread_current(), *thread_itr;
+  struct lock *lock_itr;
   ASSERT (lock != NULL);
   ASSERT (!intr_context ());
   ASSERT (!lock_held_by_current_thread (lock));
 
   //Added begins
   cur->waiting_for_lock = lock;
-  if(lock->holder!=NULL)
-    donate_priority(lock->holder, thread_current()->priority);
+
+  if(lock->holder == NULL)
+    lock->max_waiter_priority = cur->priority;
+  else
+    for(thread_itr = lock->holder, lock_itr=lock; thread_itr!=NULL && \ 
+        thread_itr->priority < cur->priority; thread_itr=lock_itr->holder){
+      donate_priority(lock->holder, thread_current()->priority);
+
+      /*update priority of lock if it is less that its current priority */
+      if(lock_itr->max_waiter_priority < cur->priority){
+        lock_itr->max_waiter_priority = cur->priority;
+    }
+    }
   //Added ends
 
   sema_down (&lock->semaphore);
@@ -234,6 +246,7 @@ lock_acquire (struct lock *lock)
   cur->waiting_for_lock = NULL;
   /* Adding it to lock_list*/
   /* Not sorted as priorities of the waiting threads might change*/
+  /* Used for priority restoration in multiple donations*/
   list_push_back(&thread_current()->lock_list,&lock->elem);
   //Added ends
   lock->holder = thread_current ();

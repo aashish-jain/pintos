@@ -704,12 +704,12 @@ void reset_priority(void){
   struct thread *t = thread_current();
   t->priority = t->init_priority;
 
-  //If ready list is empty then return
-  if(list_empty(&ready_list))
-    return;
-  //Else yeild
-  t = list_entry(list_front(&ready_list), struct thread, elem);
-  if(thread_get_priority() < t->priority)
-    thread_yield();
+  // //If ready list is empty then return
+  // if(list_empty(&ready_list))
+  //   return;
+  // //Else yeild
+  // t = list_entry(list_front(&ready_list), struct thread, elem);
+  // if(thread_get_priority() < t->priority)
+  //   thread_yield();
 
 }

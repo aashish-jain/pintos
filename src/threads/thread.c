@@ -379,7 +379,10 @@ thread_set_priority (int new_priority)
   // thread_current ()->priority = new_priority;
   struct thread *t =thread_current (); 
 
+  //Reset both priorities
   t->priority = new_priority;  
+  t->init_priority = new_priority;
+  
   /*Change in priority means change in order of ready list*/
   if (t->status == THREAD_READY ){
     //Remove it from the ready_list
@@ -699,15 +702,18 @@ donate_priority(struct thread *t, int priority){
 void reset_priority(void){
   struct thread *t = thread_current();
   t->priority = t->init_priority;
+
+  //If ready list is empty then return
+  if(list_empty(&ready_list))
+    return;
+  //Else yeild
+  t = list_entry(list_front(&ready_list), struct thread, elem);
+  if(thread_get_priority() < t->priority)
+    thread_yield();
+
 }
 
 //Added
 void yield_if_low_priority(){
   struct thread *t;
-  //If ready list is empty then return
-  if(list_empty(&ready_list))
-    return;
-  t = list_entry(list_front(&ready_list), struct thread, elem);
-  if(thread_get_priority() < t->priority)
-    thread_yield();
 }

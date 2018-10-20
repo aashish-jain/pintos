@@ -220,8 +220,10 @@ lock_acquire (struct lock *lock)
   ASSERT (!intr_context ());
   ASSERT (!lock_held_by_current_thread (lock));
 
+  //Added begins
   if(lock->holder!=NULL)
     donate_priority(lock->holder, thread_current()->priority);
+  //Added ends
 
   sema_down (&lock->semaphore);
   lock->holder = thread_current ();
@@ -259,8 +261,11 @@ lock_release (struct lock *lock)
   ASSERT (lock_held_by_current_thread (lock));
 
   lock->holder = NULL;
+  
+  //Added begins
   reset_priority();
-  yield_if_low_priority();
+  //Added ends
+
   sema_up (&lock->semaphore);
 }
 

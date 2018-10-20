@@ -221,8 +221,8 @@ lock_acquire (struct lock *lock)
   ASSERT (!lock_held_by_current_thread (lock));
 
   //Added begins
-  // if(lock->holder!=NULL)
-  //   donate_priority(lock->holder, thread_current()->priority);
+  if(lock->holder!=NULL)
+    donate_priority(lock->holder, thread_current()->priority);
   //Added ends
 
   sema_down (&lock->semaphore);
@@ -263,7 +263,7 @@ lock_release (struct lock *lock)
   lock->holder = NULL;
   
   //Added begins
-  // reset_priority();
+  reset_priority();
   //Added ends
 
   sema_up (&lock->semaphore);
@@ -391,7 +391,7 @@ sema_up_all(struct semaphore *sema, int64_t tick){
   ASSERT (sema != NULL);
   old_level = intr_disable ();
   /*if below lines are uncommented then while*/
-  while (!list_empty(&sema->waiters)) {
+  if (!list_empty(&sema->waiters)) {
     to_awaken = list_begin(&sema->waiters);
     t = list_entry(to_awaken, struct thread, elem);
     if (tick >= t->tick_to_wake)   {
@@ -400,8 +400,8 @@ sema_up_all(struct semaphore *sema, int64_t tick){
       thread_unblock(t);
     }
     //Only for while
-    else 
-      break;
+    // else 
+    //   break;
   }
   intr_set_level(old_level);
 }

@@ -389,6 +389,7 @@ thread_set_priority (int new_priority)
   
   //reset Priority as its priority = donated
   reset_priority();
+  
 
   /*Change in priority means change in order of ready list*/
   if (t->status == THREAD_READY ){

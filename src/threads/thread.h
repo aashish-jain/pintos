@@ -89,6 +89,7 @@ struct thread
     uint8_t *stack;                     /* Saved stack pointer. */
     //Added begins
     int64_t tick_to_wake;               /* Tick at which thread should be awoken */
+    int64_t init_priority;              /* Non-donated priority of a thread*/
     //Added ends
     int priority;                       /* Priority. */
     struct list_elem allelem;           /* List element for all threads list. */
@@ -148,6 +149,12 @@ void thread_wake (int64_t);
 bool priority_order_condition(const struct list_elem *a,
                               const struct list_elem *b,
                               void *aux UNUSED);
+
+void donate_priority(struct thread *, int);
+
+void reset_priority(void);
+
+void yield_if_low_priority(void);
 //Added ends//
 
 #endif /* threads/thread.h */

@@ -220,7 +220,7 @@ thread_create (const char *name, int priority,
 
   //Added begins
   if(thread_get_priority() < t->priority)
-  thread_yield();
+    thread_yield();
   //Added ends
 
   return tid;
@@ -521,6 +521,7 @@ init_thread (struct thread *t, const char *name, int priority)
 
   //Added begins
   t->tick_to_wake = 0;
+  t->init_priority = priority;
   //Added ends
 
   old_level = intr_disable ();
@@ -684,4 +685,24 @@ priority_order_condition(const struct list_elem *a,
                              void *aux UNUSED){
   struct thread *t1=list_entry(a,struct thread, elem),*t2=list_entry(b,struct thread, elem);
   return t1->priority > t2->priority;
+}
+
+//Added
+void
+donate_priority(struct thread *t, int priority){
+  ASSERT(is_thread(t));
+  t->priority = priority;
+}
+
+//Added
+void reset_priority(void){
+  struct thread *t = thread_current();
+  t->priority = t->init_priority;
+}
+
+//Added
+void yield_if_low_priority(void){
+  struct thread *t= thread_current();
+  if(thread_get_priority() < t->priority)
+    thread_yield();
 }

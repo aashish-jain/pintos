@@ -381,11 +381,15 @@ thread_set_priority (int new_priority)
   // //Actual code 
   // thread_current ()->priority = new_priority;
   struct thread *t =thread_current (); 
+  struct list_elem *l;
 
   //Reset both priorities
   t->priority = new_priority;  
   t->init_priority = new_priority;
   
+  //reset Priority as its priority = donated
+  reset_priority();
+
   /*Change in priority means change in order of ready list*/
   if (t->status == THREAD_READY ){
     //Remove it from the ready_list
@@ -712,8 +716,9 @@ reset_priority(void){
   else{
      l = list_max(&t->lock_list, get_max_lock_priority, NULL);
      t->priority = list_entry(l, struct lock, elem)->max_waiter_priority;
+    //  printf("%s resetted priority is %d",t->name, t->priority);
   }
-  //Preemption will be taken care of sema up
+  //Preemption will be taken care of sema up (thread_unblock).
 }
 
 //Added

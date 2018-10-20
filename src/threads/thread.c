@@ -691,7 +691,8 @@ priority_order_condition(const struct list_elem *a,
 void
 donate_priority(struct thread *t, int priority){
   ASSERT(is_thread(t));
-  t->priority = priority;
+  if(priority > t->priority)
+    t->priority = priority;
 }
 
 //Added
@@ -701,8 +702,12 @@ void reset_priority(void){
 }
 
 //Added
-void yield_if_low_priority(void){
-  struct thread *t= thread_current();
+void yield_if_low_priority(){
+  struct thread *t;
+  //If ready list is empty then return
+  if(list_empty(&ready_list))
+    return;
+  t = list_entry(list_front(&ready_list), struct thread, elem);
   if(thread_get_priority() < t->priority)
     thread_yield();
 }

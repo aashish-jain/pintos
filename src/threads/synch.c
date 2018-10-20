@@ -286,6 +286,8 @@ lock_release (struct lock *lock)
   lock->holder = NULL;
   
   //Added begins
+
+  /* Remove the lock from lock list as it is being released */
   list_remove(&lock->elem);
   reset_priority();
   //Added ends

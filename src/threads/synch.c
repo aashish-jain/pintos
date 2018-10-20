@@ -227,24 +227,29 @@ lock_acquire (struct lock *lock)
   
   if(lock->holder == NULL)
     lock->max_waiter_priority = cur->priority;
-  else
-    //Keep donating until lock is freed
-    for(thread_itr = lock->holder, lock_itr=lock; thread_itr!=NULL && \ 
-        thread_itr->priority < cur->priority; thread_itr=lock_itr->holder){
-      donate_priority(lock_itr->holder, cur->priority);
- 
-      /*update priority of lock if it is less that its current priority */
-      if(lock_itr->max_waiter_priority < cur->priority)
-        lock_itr->max_waiter_priority = cur->priority;
-      //For nested and chained donation
-      lock_itr = thread_itr->waiting_for_lock;
-      if(lock_itr == NULL)
-        break;
-    }
+  
+  //Keep donating until lock is released
+  else for(thread_itr = lock->holder, lock_itr=lock; \
+      thread_itr!=NULL && thread_itr->priority < cur->priority;\
+      thread_itr=lock_itr->holder){
+
+    donate_priority(lock_itr->holder, cur->priority);
+
+    /*update priority of lock if it is less that its current priority */
+    lock_itr->max_waiter_priority = (lock_itr->max_waiter_priority \ 
+                                        < cur->priority) ?cur->priority : \
+                                                lock_itr->max_waiter_priority;
+    //For nested and chained donation move on to next blocking thread
+    lock_itr = thread_itr->waiting_for_lock;
+    if(lock_itr == NULL)
+      break;
+  }
   //Added ends
 
   sema_down (&lock->semaphore);
-  
+
+  lock->holder = thread_current ();
+
   //Added begins
   /* Got the lock*/
   cur->waiting_for_lock = NULL;
@@ -254,7 +259,6 @@ lock_acquire (struct lock *lock)
   list_push_back(&thread_current()->lock_list,&lock->elem);
   //Added ends
   
-  lock->holder = thread_current ();
 }
 
 /* Tries to acquires LOCK and returns true if successful or false
@@ -317,7 +321,7 @@ struct semaphore_elem
     struct list_elem elem;              /* List element. */
     struct semaphore semaphore;         /* This semaphore. */
     //Added begins
-    //For thread's priority (thread * is better - can change)
+    /* For thread's priority (thread * is better - can change) */
     struct thread *t;
     //Added ends
   };

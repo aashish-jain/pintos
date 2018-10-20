@@ -717,7 +717,6 @@ reset_priority(void){
   else{
      l = list_max(&t->lock_list, get_max_lock_priority, NULL);
      t->priority = list_entry(l, struct lock, elem)->max_waiter_priority;
-    //  printf("%s resetted priority is %d",t->name, t->priority);
   }
   //Preemption will be taken care of sema up (thread_unblock).
 }

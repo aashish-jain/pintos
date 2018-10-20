@@ -228,14 +228,19 @@ lock_acquire (struct lock *lock)
   if(lock->holder == NULL)
     lock->max_waiter_priority = cur->priority;
   else
+    //Keep donating until lock is freed
     for(thread_itr = lock->holder, lock_itr=lock; thread_itr!=NULL && \ 
         thread_itr->priority < cur->priority; thread_itr=lock_itr->holder){
       donate_priority(lock->holder, thread_current()->priority);
 
       /*update priority of lock if it is less that its current priority */
-      if(lock_itr->max_waiter_priority < cur->priority){
+      if(lock_itr->max_waiter_priority < cur->priority)
         lock_itr->max_waiter_priority = cur->priority;
-    }
+      
+      //For nested and chained donation
+      lock_itr = thread_itr->waiting_for_lock;
+      if(lock_itr == NULL)
+        break;
     }
   //Added ends
 
@@ -366,6 +371,7 @@ cond_wait (struct condition *cond, struct lock *lock)
   waiter.t = thread_current();
   list_insert_ordered(&cond->waiters, &waiter.elem, cond_order_func, NULL);
   //Added ends
+  
   lock_release (lock);
   sema_down (&waiter.semaphore);
   lock_acquire (lock);

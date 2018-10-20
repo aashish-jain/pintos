@@ -82,6 +82,9 @@ static tid_t allocate_tid (void);
 bool sleep_list_less( const struct list_elem *a,
                       const struct list_elem *b,
                       void *aux UNUSED);
+bool get_max_lock_priority( const struct list_elem *a,
+                      const struct list_elem *b,
+                      void *aux UNUSED);
 //Added ends
 
 /* Initializes the threading system by transforming the code
@@ -700,16 +703,25 @@ donate_priority(struct thread *t, int priority){
 }
 
 //Added
-void reset_priority(void){
+void 
+reset_priority(void){
   struct thread *t = thread_current();
-  t->priority = t->init_priority;
+  if(list_empty(&t->lock_list))
+    t->priority = t->init_priority;
+  else{
+    
+  }
 
-  // //If ready list is empty then return
-  // if(list_empty(&ready_list))
-  //   return;
-  // //Else yeild
-  // t = list_entry(list_front(&ready_list), struct thread, elem);
-  // if(thread_get_priority() < t->priority)
-  //   thread_yield();
+  //Preemption will be taken care of sema up
+}
 
+//Added
+bool 
+get_max_lock_priority( const struct list_elem *a,
+                       const struct list_elem *b,
+                       void *aux UNUSED){
+  
+  struct lock *la = list_entry(a, struct lock, elem);
+  struct lock *lb = list_entry(b, struct lock, elem);
+  return la->max_waiter_priority < lb->max_waiter_priority;
 }

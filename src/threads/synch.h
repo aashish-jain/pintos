@@ -24,6 +24,7 @@ struct lock
     struct semaphore semaphore; /* Binary semaphore controlling access. */
     //Added begins
     struct list_elem elem;      /* List element for adding locks to list*/
+    int max_waiter_priority;    /*Priority of waiting thread*/
     //Added ends
   };
 

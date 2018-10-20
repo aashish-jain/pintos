@@ -216,11 +216,13 @@ lock_init (struct lock *lock)
 void
 lock_acquire (struct lock *lock)
 {
+  struct thread *cur = thread_current();
   ASSERT (lock != NULL);
   ASSERT (!intr_context ());
   ASSERT (!lock_held_by_current_thread (lock));
 
   //Added begins
+  cur->waiting_for_lock = lock;
   if(lock->holder!=NULL)
     donate_priority(lock->holder, thread_current()->priority);
   //Added ends
@@ -228,6 +230,8 @@ lock_acquire (struct lock *lock)
   sema_down (&lock->semaphore);
 
   //Added begins
+  /* Got the lock*/
+  cur->waiting_for_lock = NULL;
   /* Adding it to lock_list*/
   /* Not sorted as priorities of the waiting threads might change*/
   list_push_back(&thread_current()->lock_list,&lock->elem);

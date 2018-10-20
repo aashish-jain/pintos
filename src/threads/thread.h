@@ -91,7 +91,7 @@ struct thread
     int64_t tick_to_wake;               /* Tick at which thread should be awoken */
     int64_t init_priority;              /* Non-donated priority of a thread*/
     struct list lock_list;              /* list of currently held locks*/
-    struct list_elem lelem;             /* list_elem for lock waiters list*/
+    struct lock *waiting_for_lock;      /* Lock thread is trying to acquire */
     //Added ends
     int priority;                       /* Priority. */
     struct list_elem allelem;           /* List element for all threads list. */

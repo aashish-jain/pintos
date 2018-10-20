@@ -90,6 +90,8 @@ struct thread
     //Added begins
     int64_t tick_to_wake;               /* Tick at which thread should be awoken */
     int64_t init_priority;              /* Non-donated priority of a thread*/
+    struct list lock_list;              /* list of currently held locks*/
+    struct list_elem lelem;             /* list_elem for lock waiters list*/
     //Added ends
     int priority;                       /* Priority. */
     struct list_elem allelem;           /* List element for all threads list. */
@@ -154,7 +156,6 @@ void donate_priority(struct thread *, int);
 
 void reset_priority(void);
 
-void yield_if_low_priority(void);
 //Added ends//
 
 #endif /* threads/thread.h */

@@ -226,6 +226,12 @@ lock_acquire (struct lock *lock)
   //Added ends
 
   sema_down (&lock->semaphore);
+
+  //Added begins
+  /* Adding it to lock_list*/
+  /* Not sorted as priorities of the waiting threads might change*/
+  list_push_back(&thread_current()->lock_list,&lock->elem);
+  //Added ends
   lock->holder = thread_current ();
 }
 
@@ -263,6 +269,7 @@ lock_release (struct lock *lock)
   lock->holder = NULL;
   
   //Added begins
+  list_remove(&lock->elem);
   reset_priority();
   //Added ends
 

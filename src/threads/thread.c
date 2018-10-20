@@ -525,6 +525,7 @@ init_thread (struct thread *t, const char *name, int priority)
   //Added begins
   t->tick_to_wake = 0;
   t->init_priority = priority;
+  list_init(&t->lock_list);
   //Added ends
 
   old_level = intr_disable ();
@@ -711,9 +712,4 @@ void reset_priority(void){
   if(thread_get_priority() < t->priority)
     thread_yield();
 
-}
-
-//Added
-void yield_if_low_priority(){
-  struct thread *t;
 }

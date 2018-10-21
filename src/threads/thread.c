@@ -44,6 +44,8 @@ static struct lock tid_lock;
 // Added begins
 
 /* Using semaphores for sleeping */
+struct list sleep_list;
+struct semaphore sleep_list_sema;
 struct semaphore waker;
 static int load_avg;
 //Added ends
@@ -118,6 +120,8 @@ thread_init (void)
   sema_init(&waker,0);
   //Same as load avg = 0
   load_avg = ITOF(0);
+  sema_init(&sleep_list_sema,1);
+  list_init(&sleep_list);
   //Added ends
 
   /* Set up a thread structure for the running thread. */
@@ -285,6 +289,7 @@ thread_unblock (struct thread *t)
 
   intr_set_level (old_level);
 }
+
 
 /* Returns the name of the running thread. */
 const char *
@@ -700,11 +705,23 @@ sleep_list_less(const struct list_elem *a,
 void 
 thread_sleep(int64_t ticks){
   struct thread *t=thread_current();
-  //Doesn't have to sleep
-  if (ticks <= 0)
-    return;
-  t->tick_to_wake = ticks + timer_ticks ();
-  sema_down_ordered(&waker, sleep_list_less, NULL);  
+  enum intr_level old_level;
+
+  ASSERT (!intr_context ());
+
+
+  t->tick_to_wake = ticks;
+
+  //Synchronization for sleep_list
+  sema_down(&sleep_list_sema);
+  list_insert_ordered (&sleep_list, &thread_current ()->elem, sleep_list_less, NULL);
+  sema_up(&sleep_list_sema);
+
+  //Interrupts have to be disabled for thread unblock
+  old_level = intr_disable ();
+  thread_block();
+  intr_set_level (old_level);
+
   return;
 }
 
@@ -712,7 +729,20 @@ thread_sleep(int64_t ticks){
 /* Wakes up sleeping threads in the waker_waiters if it's time */
 void 
 thread_wake(int64_t wake_at){
-  sema_up_all(&waker, wake_at);
+  struct list_elem *to_awaken;
+  struct thread *t=NULL;
+
+  //No synchronization needed as called by interrupt handler
+  while (!list_empty(&sleep_list)) {
+    to_awaken = list_begin(&sleep_list);
+    t = list_entry(to_awaken, struct thread, elem);
+    if (wake_at >= t->tick_to_wake)   {
+      list_pop_front(&sleep_list);
+      thread_unblock_no_yield(t);
+    }
+    else
+     break;
+  }
   return;
 }
 
@@ -794,4 +824,25 @@ void thread_calculate_recent_cpu(struct thread *t){
     a=F_DIV(a,FI_SUM(a,1));
     t->recent_cpu = FI_SUM(FI_PROD(a,t->recent_cpu),t->nice);
   }
+}
+
+void
+thread_unblock_no_yield (struct thread *t) 
+{
+  enum intr_level old_level;
+
+  ASSERT (is_thread (t));
+
+  old_level = intr_disable ();
+  ASSERT (t->status == THREAD_BLOCKED);
+  // //Actual code
+  // list_push_back (&ready_list, &t->elem);
+  
+  //Added begins
+  list_insert_ordered (&ready_list, &t->elem, priority_order_condition, NULL);
+  //Added ends
+
+  t->status = THREAD_READY;
+
+  intr_set_level (old_level);
 }

@@ -53,9 +53,4 @@ void cond_broadcast (struct condition *, struct lock *);
    reference guide for more information.*/
 #define barrier() asm volatile ("" : : : "memory")
 
-//Added begins
-void sema_up_all(struct semaphore *, int64_t);
-void sema_down_ordered (struct semaphore *, list_less_func *, void *); 
-
-//Added ends
 #endif /* threads/synch.h */

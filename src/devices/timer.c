@@ -92,8 +92,12 @@ timer_sleep (int64_t ticks)
   ASSERT (intr_get_level () == INTR_ON);
 
   // Added begins
+  //Doesn't have to sleep
+  if (ticks <= 0)
+    return;
+
   //The current thread goes to sleep
-  thread_sleep(ticks);
+  thread_sleep(ticks + timer_ticks());
   // Added ends
 }
 

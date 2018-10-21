@@ -230,8 +230,7 @@ lock_acquire (struct lock *lock)
   
   //Keep donating until lock is released
   else for(thread_itr = lock->holder, lock_itr=lock; \
-      thread_itr!=NULL && thread_itr->priority < cur->priority;\
-      thread_itr=lock_itr->holder){
+      thread_itr!=NULL ; thread_itr=lock_itr->holder){
 
     donate_priority(lock_itr->holder, cur->priority);
 

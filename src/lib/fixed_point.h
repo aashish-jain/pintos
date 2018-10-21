@@ -12,14 +12,14 @@
 #define ITOF(n) (n*F)
 #define FTOI(x) (x/F)
 #define F_ROUND(x) ((x) >= 0 ? (((x)+(F)/2)/F) : (((x)-(F)/2)/F))
-#define F_SUM(x,y) (x+y)
-#define F_DIFF(x,y) (x-y)
+#define F_SUM(x,y) ((x)+(y))
+#define F_DIFF(x,y) ((x)-(y))
 #define F_PROD(x,y) (((int64_t) x) * (y) / F)
 #define F_DIV(x,y) (((int64_t) x) * F / (y))
 
 #define FI_SUM(x,n) ((x)+((n)*F))
-#define FI_DIFF(x,n) (x-((n)*F))
+#define FI_DIFF(x,n) ((x)-((n)*F))
 #define FI_PROD(x,n) ((x)*(n))
-#define FI_DIV(x,n) ((x)/F)
+#define FI_DIV(x,n) ((x)/(n))
 
 #endif

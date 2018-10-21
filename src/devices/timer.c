@@ -182,11 +182,11 @@ timer_interrupt (struct intr_frame *args UNUSED)
     thread_current()->recent_cpu++;
     
     //Re calculate priority
-    if(ticks % 4){
+    if(ticks % 4 == 0){
 
     }
 
-    if(ticks % 100){
+    if(ticks % 100 == 0){
     //Re-calculate recent cpu and load_avg
     // thread_calculate_recent_cpu();
     calculate_load_avg();

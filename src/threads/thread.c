@@ -778,6 +778,8 @@ void calculate_load_avg(void){
   if(idle_thread != thread_current())
     thread_count = thread_count + 1;
 
+  // int a = FI_DIV(ITOF(59),60);
+  // printf("%d\n", a);
   load_avg = F_PROD(FI_DIV(ITOF(59),60),load_avg) +\
              FI_DIV(thread_count, 60);
 }

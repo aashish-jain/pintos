@@ -1,6 +1,4 @@
-/* 
-Done by Raman Singh
-*/
+
 #ifndef FIXED_POINT_H
 #define FIXED_POINT_H
 

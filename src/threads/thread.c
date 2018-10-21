@@ -233,7 +233,7 @@ thread_create (const char *name, int priority,
   thread_unblock (t);
 
   //Added begins
-  if(!thread_mlfqs && thread_get_priority() < t->priority)
+  if(thread_get_priority() < t->priority)
     thread_yield();
   //Added ends
 

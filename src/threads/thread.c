@@ -762,7 +762,7 @@ void thread_calculate_priority(struct thread *t){
   if(t == idle_thread)
     return;
   t->priority = PRI_MAX - \
-                F_ROUND(FI_DIV(t->recent_cpu,4)) - \
+                FI_DIV(ITOF(t->recent_cpu),4) - \
                 t->nice* 2;
   if(t->priority > PRI_MAX)
     t->priority = PRI_MAX;
@@ -778,10 +778,8 @@ void calculate_load_avg(void){
   if(idle_thread != thread_current())
     thread_count = thread_count + 1;
 
-  // printf("%d",FI_DIV(ITOF(thread_count), 60));
   load_avg = F_PROD(FI_DIV(ITOF(59),60),load_avg) +\
              FI_DIV(ITOF(thread_count), 60);
-  // printf("%d\n", FI_DIV(ITOF(thread_count), 60));
 }
 
 //Added

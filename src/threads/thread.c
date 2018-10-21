@@ -4,6 +4,8 @@
 #include <random.h>
 #include <stdio.h>
 #include <string.h>
+//Added
+#include <fixed_point.h>
 #include "threads/flags.h"
 #include "threads/interrupt.h"
 #include "threads/intr-stubs.h"
@@ -11,6 +13,8 @@
 #include "threads/switch.h"
 #include "threads/synch.h"
 #include "threads/vaddr.h"
+#define I_DIV(a,b) F_DIV(ITOF(a)/ITOF(b))
+
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
@@ -41,6 +45,7 @@ static struct lock tid_lock;
 
 /* Using semaphores for sleeping */
 struct semaphore waker;
+static int load_avg;
 //Added ends
 
 /* Stack frame for kernel_thread(). */
@@ -111,6 +116,8 @@ thread_init (void)
 
   //Added begins
   sema_init(&waker,0);
+  //Same as load avg = 0
+  load_avg = ITOF(0);
   //Added ends
 
   /* Set up a thread structure for the running thread. */
@@ -381,7 +388,6 @@ thread_set_priority (int new_priority)
   // //Actual code 
   // thread_current ()->priority = new_priority;
   struct thread *t =thread_current (); 
-  struct list_elem *l;
 
   //Reset both priorities
   t->priority = new_priority;  
@@ -413,17 +419,24 @@ thread_get_priority (void)
 
 /* Sets the current thread's nice value to NICE. */
 void
-thread_set_nice (int nice UNUSED) 
+thread_set_nice (int nice) 
 {
-  /* Not yet implemented. */
+  //Added begins
+  struct thread * t = thread_current();
+  t->nice = nice;
+  //Priority will change if nice value changes
+  thread_calculate_priority(t);
+  //Added ends
+
+
 }
 
 /* Returns the current thread's nice value. */
 int
 thread_get_nice (void) 
 {
-  /* Not yet implemented. */
-  return 0;
+  //Added
+  return thread_current()->nice;
 }
 
 /* Returns 100 times the system load average. */
@@ -431,7 +444,7 @@ int
 thread_get_load_avg (void) 
 {
   /* Not yet implemented. */
-  return 0;
+  return F_ROUND(FI_PROD(load_avg,100));
 }
 
 /* Returns 100 times the current thread's recent_cpu value. */
@@ -439,7 +452,7 @@ int
 thread_get_recent_cpu (void) 
 {
   /* Not yet implemented. */
-  return 0;
+  return F_ROUND(FI_PROD(thread_current()->recent_cpu, 100));
 }
 
 /* Idle thread.  Executes when no other thread is ready to run.
@@ -534,6 +547,18 @@ init_thread (struct thread *t, const char *name, int priority)
   t->tick_to_wake = 0;
   t->init_priority = priority;
   list_init(&t->lock_list);
+
+  //Only for mlfqs
+  if(thread_mlfqs){
+    if(t == initial_thread){
+      t->nice = 0;
+      t->recent_cpu = 0;
+    }
+    else{
+      t->nice = thread_get_nice();
+      t->priority = thread_get_priority();
+    }
+  }
   //Added ends
 
   old_level = intr_disable ();
@@ -730,4 +755,41 @@ get_max_lock_priority( const struct list_elem *a,
   struct lock *la = list_entry(a, struct lock, elem);
   struct lock *lb = list_entry(b, struct lock, elem);
   return la->max_waiter_priority < lb->max_waiter_priority;
+}
+
+//Added
+void thread_calculate_priority(struct thread *t){
+  if(t == idle_thread)
+    return;
+  t->priority = PRI_MAX - \
+                F_ROUND(FI_DIV(t->recent_cpu,4)) - \
+                t->nice* 2;
+  if(t->priority > PRI_MAX)
+    t->priority = PRI_MAX;
+  else if( t->priority < PRI_MIN)
+    t->priority = PRI_MIN;    
+}
+
+//Added
+void calculate_load_avg(void){
+  int thread_count = list_size(&ready_list);
+
+  //Subtract idle thread from number of ready lists
+  if(idle_thread != thread_current())
+    thread_count = thread_count + 1;
+
+  load_avg = F_PROD(FI_DIV(ITOF(59),60),load_avg) +\
+             FI_DIV(thread_count, 60);
+}
+
+//Added
+void thread_calculate_recent_cpu(struct thread *t){
+  int a;
+  if(t==idle_thread)
+    return;
+  else{
+    a=FI_PROD(load_avg,2);
+    a=F_DIV(a,FI_SUM(a,1));
+    t->recent_cpu = FI_SUM(FI_PROD(a,t->recent_cpu),t->nice);
+  }
 }

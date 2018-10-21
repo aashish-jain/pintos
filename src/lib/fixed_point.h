@@ -6,18 +6,22 @@ Done by Raman Singh
 
 #define P 17
 #define Q 14
-#define f 1 << Q
+#define F (1 << Q)
 
-#define int_to_float(x) x*f
-#define float_to_int(x) x/f
-#define round_float(x) ((x) >= 0 ? ((x)+(f)/2)/(f) : ((x)-(f)/2)/(f))
-#define float_sum(x,y) x+y
-#define float_diff(x,y) x-y
-#define float_product(x,y) ((int64_t) x) * y / f
-#define float_quotient(x,y) ((int64_t) x) * f / y
+//falready has brackets
+//n-> int x,y->float a,b->int
+//brackets are key to maintaing intended order
+#define ITOF(n) (n*F)
+#define FTOI(x) (x/F)
+#define F_ROUND(x) ((x) >= 0 ? (((x)+(F)/2)/F) : (((x)-(F)/2)/F))
+#define F_SUM(x,y) (x+y)
+#define F_DIFF(x,y) (x-y)
+#define F_PROD(x,y) (((int64_t) x) * (y) / F)
+#define F_DIV(x,y) (((int64_t) x) * F / (y))
 
-#define int_float_sum(x,n) x+n*f
-#define sub_int_float_diff(x,n) x-n*f
-#define int_float_product(x,n) x*n
-#define int_float_quotient(x,n) x/f
+#define FI_SUM(x,n) ((x)+((n)*F))
+#define FI_DIFF(x,n) (x-((n)*F))
+#define FI_PROD(x,n) ((x)*(n))
+#define FI_DIV(x,n) ((x)/F)
+
 #endif

@@ -92,6 +92,8 @@ struct thread
     int64_t init_priority;              /* Non-donated priority of a thread*/
     struct list lock_list;              /* list of currently held locks*/
     struct lock *waiting_for_lock;      /* Lock thread is trying to acquire */
+    int nice;                           /* Nice value of the thread */
+    int recent_cpu;                     /* Recent cpu of the thread */
     //Added ends
     int priority;                       /* Priority. */
     struct list_elem allelem;           /* List element for all threads list. */
@@ -155,6 +157,10 @@ bool priority_order_condition(const struct list_elem *a,
 void donate_priority(struct thread *, int);
 
 void reset_priority(void);
+
+void thread_calculate_priority(struct thread*);
+void thread_calculate_recent_cpu(struct thread*);
+void calculate_load_avg(void);
 
 //Added ends//
 

@@ -176,8 +176,24 @@ timer_interrupt (struct intr_frame *args UNUSED)
   // Added begins
   /*Wakes up threads*/
   thread_wake(timer_ticks());
+
+  //Should be before thread_tick  
+  if(thread_mlfqs){
+    thread_current()->recent_cpu++;
+    
+    //Re calculate priority
+    if(ticks % 4){
+
+    }
+
+    if(ticks % 100){
+    //Re-calculate recent cpu and load_avg
+    // thread_calculate_recent_cpu();
+    calculate_load_avg();
+    // printf("%d\n",thread_get_load_avg());
+    }
+  }
   // Added ends 
-  
   thread_tick ();
 }
 

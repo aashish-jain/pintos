@@ -229,7 +229,7 @@ thread_create (const char *name, int priority,
   thread_unblock (t);
 
   //Added begins
-  if(thread_get_priority() < t->priority)
+  if(!thread_mlfqs && thread_get_priority() < t->priority)
     thread_yield();
   //Added ends
 
@@ -348,6 +348,8 @@ thread_yield (void)
   struct thread *cur = thread_current ();
   enum intr_level old_level;
   
+  if(intr_context()) 
+    printf("THis %s??\n",cur->name);
   ASSERT (!intr_context ());
 
   old_level = intr_disable ();

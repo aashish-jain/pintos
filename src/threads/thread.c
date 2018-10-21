@@ -563,7 +563,7 @@ init_thread (struct thread *t, const char *name, int priority)
     }
     else{
       t->nice = thread_get_nice();
-      t->priority = thread_get_priority();
+      t->recent_cpu = thread_get_recent_cpu();
     }
   }
   //Added ends
@@ -822,7 +822,7 @@ void thread_calculate_recent_cpu(struct thread *t){
   else{
     a=FI_PROD(load_avg,2);
     a=F_DIV(a,FI_SUM(a,1));
-    t->recent_cpu = FI_SUM(FI_PROD(a,t->recent_cpu),t->nice);
+    t->recent_cpu = FI_SUM(F_PROD(a,t->recent_cpu),t->nice);
   }
 }
 
@@ -845,4 +845,31 @@ thread_unblock_no_yield (struct thread *t)
   t->status = THREAD_READY;
 
   intr_set_level (old_level);
+}
+
+void calculate_recent_cpu_all(void){
+  struct thread *t;
+  struct list_elem *l;
+  if(list_size(&all_list)==1){
+    t=list_entry(list_begin(&all_list), struct thread, allelem);
+    thread_calculate_recent_cpu(t);
+  }
+  else for(l=list_begin(&all_list); l!=list_end(&all_list) ; l=list_next(l)){
+    t=list_entry(list_begin(&all_list), struct thread, allelem);
+    thread_calculate_recent_cpu(t);
+  }
+} 
+
+void calculate_priority_all(void){
+  struct thread *t;
+  struct list_elem *l;
+  if(list_size(&all_list)==1){
+    t=list_entry(list_begin(&all_list), struct thread, allelem);
+    thread_calculate_priority(t);
+  }
+  else for(l=list_begin(&all_list); l!=list_end(&all_list) ; l=list_next(l)){
+    t=list_entry(list_begin(&all_list), struct thread, allelem);
+    thread_calculate_priority(t);
+  }
+
 }

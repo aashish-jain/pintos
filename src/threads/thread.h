@@ -164,6 +164,8 @@ void calculate_load_avg(void);
 
 void thread_unblock_no_yield(struct thread *);
 
+void calculate_recent_cpu_all(void);
+void calculate_priority_all(void);
 //Added ends//
 
 #endif /* threads/thread.h */

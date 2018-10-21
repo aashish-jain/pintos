@@ -3,6 +3,7 @@
 #include <inttypes.h>
 #include <round.h>
 #include <stdio.h>
+#include <fixed_point.h>
 #include "devices/pit.h"
 #include "threads/interrupt.h"
 #include "threads/synch.h"
@@ -175,6 +176,7 @@ timer_print_stats (void)
 static void
 timer_interrupt (struct intr_frame *args UNUSED)
 {
+  struct thread *t = thread_current();
   ticks++;
 
   // Added begins
@@ -183,17 +185,17 @@ timer_interrupt (struct intr_frame *args UNUSED)
 
   //Should be before thread_tick  
   if(thread_mlfqs){
-    thread_current()->recent_cpu++;
+    t->recent_cpu = FI_SUM(t->recent_cpu,1);
     
     //Re calculate priority
-    if(ticks % 4 == 0){
+    if(ticks % 4 == 0)
+    calculate_priority_all();
 
-    }
-
-    if(ticks % 100 == 0){
+    if(ticks % TIMER_FREQ == 0){
     //Re-calculate recent cpu and load_avg
     // thread_calculate_recent_cpu();
     calculate_load_avg();
+    calculate_recent_cpu_all();
     // printf("%d\n",thread_get_load_avg());
     }
   }

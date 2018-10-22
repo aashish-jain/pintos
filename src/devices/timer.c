@@ -185,19 +185,18 @@ timer_interrupt (struct intr_frame *args UNUSED)
 
   //Should be before thread_tick  
   if(thread_mlfqs){
+    if (t->tid != 2)
     t->recent_cpu = FI_SUM(t->recent_cpu,1);
     
-    //Re calculate priority
-    if(ticks % 4 == 0)
-    calculate_priority_all();
-
     if(ticks % TIMER_FREQ == 0){
     //Re-calculate recent cpu and load_avg
-    // thread_calculate_recent_cpu();
     calculate_load_avg();
     calculate_recent_cpu_all();
-    // printf("%d\n",thread_get_load_avg());
     }
+    //Re calculate priority
+    if(ticks % 4 == 0)
+      calculate_priority_all();
+
   }
   // Added ends 
   thread_tick ();

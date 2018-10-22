@@ -429,13 +429,18 @@ void
 thread_set_nice (int nice) 
 {
   //Added begins
-  struct thread * t = thread_current();
+  struct thread *t = thread_current();
+  struct thread *next;
   t->nice = nice;
   //Priority will change if nice value changes
   thread_calculate_priority(t);
+  if(!list_empty(&ready_list)) {
+  list_sort (&ready_list, priority_order_condition, NULL);
+    next = list_entry(list_front(&ready_list), struct thread, elem);
+    if(t->priority > next->priority)
+      thread_yield();
+  }
   //Added ends
-
-
 }
 
 /* Returns the current thread's nice value. */
@@ -794,8 +799,8 @@ void thread_calculate_priority(struct thread *t){
   if(t == idle_thread)
     return;
   t->priority = PRI_MAX - \
-                FI_DIV(ITOF(t->recent_cpu),4) - \
-                t->nice* 2;
+                FTOI(FI_DIV(t->recent_cpu,4)) - \
+                t->nice*2;
   if(t->priority > PRI_MAX)
     t->priority = PRI_MAX;
   else if( t->priority < PRI_MIN)
@@ -850,12 +855,12 @@ thread_unblock_no_yield (struct thread *t)
 void calculate_recent_cpu_all(void){
   struct thread *t;
   struct list_elem *l;
-  if(list_size(&all_list)==1){
-    t=list_entry(list_begin(&all_list), struct thread, allelem);
-    thread_calculate_recent_cpu(t);
-  }
-  else for(l=list_begin(&all_list); l!=list_end(&all_list) ; l=list_next(l)){
-    t=list_entry(list_begin(&all_list), struct thread, allelem);
+  // if(list_size(&all_list)==1){
+  //   t=list_entry(list_begin(&all_list), struct thread, allelem);
+  //   thread_calculate_recent_cpu(t);
+  // }
+   for(l=list_begin(&all_list); l!=list_end(&all_list) ; l=list_next(l)){
+    t=list_entry(l, struct thread, allelem);
     thread_calculate_recent_cpu(t);
   }
 } 
@@ -863,13 +868,16 @@ void calculate_recent_cpu_all(void){
 void calculate_priority_all(void){
   struct thread *t;
   struct list_elem *l;
-  if(list_size(&all_list)==1){
-    t=list_entry(list_begin(&all_list), struct thread, allelem);
+
+  // if(list_size(&all_list)==1){
+  //   t=list_entry(list_begin(&all_list), struct thread, allelem);
+  //   thread_calculate_priority(t);
+  // }
+  //else
+   for(l=list_begin(&all_list); l!=list_end(&all_list) ; l=list_next(l)){
+    t=list_entry(l, struct thread, allelem);
     thread_calculate_priority(t);
   }
-  else for(l=list_begin(&all_list); l!=list_end(&all_list) ; l=list_next(l)){
-    t=list_entry(list_begin(&all_list), struct thread, allelem);
-    thread_calculate_priority(t);
-  }
+  list_sort(&ready_list, priority_order_condition, NULL);
 
 }

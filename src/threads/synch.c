@@ -235,6 +235,7 @@ lock_acquire (struct lock *lock)
     donate_priority(lock_itr->holder, cur->priority);
 
     /*update priority of lock if it is less that its current priority */
+    /* If a higher priority lock tries to aquire */
     if(lock_itr->max_waiter_priority < cur->priority)
       lock_itr->max_waiter_priority = cur->priority; 
     //For nested and chained donation move on to next blocking thread

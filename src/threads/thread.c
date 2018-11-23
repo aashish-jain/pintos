@@ -1,4 +1,4 @@
-#include "threads/thread.h"
+#include <threads/thread.h>
 #include <debug.h>
 #include <stddef.h>
 #include <random.h>
@@ -572,6 +572,9 @@ init_thread (struct thread *t, const char *name, int priority)
     }
   }
   //Added ends
+  t->parent = running_thread();
+  sema_init(&t->parent_sema,0);
+  sema_init(&t->parent->parent_sema, 0);
 
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);

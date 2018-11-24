@@ -30,6 +30,8 @@ process_execute (const char *file_name)
 {
   char *fn_copy;
   tid_t tid;
+  char *save_ptr;
+  char *exec_name;
 
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
@@ -38,8 +40,15 @@ process_execute (const char *file_name)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
 
+  /*  thread name must be executable name */
+  exec_name = malloc(strlen(file_name)+1);
+  strlcpy(exec_name, file_name, strlen(file_name)+1);
+  exec_name = strtok_r(exec_name, " ", &save_ptr);
+  
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
+  //tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
+  tid = thread_create (exec_name, PRI_DEFAULT, start_process, fn_copy);
+  free(exec_name);
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
   return tid;
@@ -88,7 +97,8 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
-  return -1;
+  sema_down(&thread_current()->parent_sema);
+  // return -1;
 }
 
 /* Free the current process's resources. */
@@ -195,7 +205,7 @@ struct Elf32_Phdr
 #define PF_W 2          /* Writable. */
 #define PF_R 4          /* Readable. */
 
-static bool setup_stack (void **esp);
+static bool setup_stack (void **esp, int argc,const char *file_name);
 static bool validate_segment (const struct Elf32_Phdr *, struct file *);
 static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
                           uint32_t read_bytes, uint32_t zero_bytes,
@@ -214,6 +224,10 @@ load (const char *file_name, void (**eip) (void), void **esp)
   off_t file_ofs;
   bool success = false;
   int i;
+  char *token, *save_ptr;
+  char *exec_name;
+  int argc = 0;
+
 
   /* Allocate and activate page directory. */
   t->pagedir = pagedir_create ();
@@ -221,8 +235,18 @@ load (const char *file_name, void (**eip) (void), void **esp)
     goto done;
   process_activate ();
 
+  /*  filesys_open should have executable name */
+  exec_name = malloc(strlen(file_name)+1);
+  strlcpy(exec_name, file_name, strlen(file_name)+1);
+
+  //calculate the arg count
+  for (token = strtok_r (exec_name, " ", &save_ptr); token != NULL; token = strtok_r (NULL, " ", &save_ptr))
+    argc++;
+
+  exec_name = strtok_r(exec_name, " ", &save_ptr);
   /* Open executable file. */
-  file = filesys_open (file_name);
+  file = filesys_open (exec_name);
+  free(exec_name);
   if (file == NULL) 
     {
       printf ("load: %s: open failed\n", file_name);
@@ -302,7 +326,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
     }
 
   /* Set up stack. */
-  if (!setup_stack (esp))
+  if (!setup_stack (esp, argc, file_name))
     goto done;
 
   /* Start address. */
@@ -427,10 +451,12 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 /* Create a minimal stack by mapping a zeroed page at the top of
    user virtual memory. */
 static bool
-setup_stack (void **esp) 
+setup_stack (void **esp, int argc, const char *file_name) 
 {
+  // printf("in setup stack\n");
   uint8_t *kpage;
   bool success = false;
+  char *token, *save_ptr;
 
   kpage = palloc_get_page (PAL_USER | PAL_ZERO);
   if (kpage != NULL) 
@@ -441,6 +467,40 @@ setup_stack (void **esp)
       else
         palloc_free_page (kpage);
     }
+  // printf("argc count %d\n", argc);
+   char **argv = malloc(argc*sizeof(char *));
+   for (int i =0,token = strtok_r (file_name, " ", &save_ptr); token != NULL;
+    i++, token = strtok_r (NULL, " ", &save_ptr))
+    {
+      *esp -= strlen(token) + 1;
+      argv[i]=*esp;
+      memcpy(*esp,token,strlen(token) + 1);      
+    }
+  // add sentinel
+  *esp = *esp - 4;
+  (*(int *)(*esp)) = 0;
+  
+  for(int i=argc-1; i>=0; i--)
+  {
+    *esp-=sizeof(int);
+    memcpy(*esp,&argv[i],sizeof(int));
+  }
+  
+  //push address of argv
+  int addr = *esp;
+  *esp-=sizeof(int);
+  memcpy(*esp,&addr,sizeof(int));
+  
+  //push argc
+  *esp-=sizeof(int);
+  memcpy(*esp,&argc,sizeof(int));
+
+  // null pointer
+  *esp = *esp - 4;
+  (*(int *)(*esp)) = 0;
+  
+  free(argv);
+
   return success;
 }
 

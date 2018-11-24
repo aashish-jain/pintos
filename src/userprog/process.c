@@ -18,7 +18,6 @@
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 
-#define MAX_ARGS 25
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
 
@@ -39,11 +38,6 @@ process_execute (const char *file_name)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
 
-  //Added
-  /* Getting file name from arguments*/
-  char *tmp_ptr;
-  file_name = (const char*) strtok_r(file_name, " " , &tmp_ptr);
-  
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
   if (tid == TID_ERROR)
@@ -94,7 +88,6 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
-  while(1);
   return -1;
 }
 
@@ -208,10 +201,6 @@ static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
                           uint32_t read_bytes, uint32_t zero_bytes,
                           bool writable);
 
-//Added
-static void init_stack (void **esp, const char *arguments);
-
-
 /* Loads an ELF executable from FILE_NAME into the current thread.
    Stores the executable's entry point into *EIP
    and its initial stack pointer into *ESP.
@@ -233,9 +222,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
   process_activate ();
 
   /* Open executable file. */
-  // file = filesys_open (file_name);
-  //Added
-  file = filesys_open (thread_current()->name);
+  file = filesys_open (file_name);
   if (file == NULL) 
     {
       printf ("load: %s: open failed\n", file_name);
@@ -318,7 +305,6 @@ load (const char *file_name, void (**eip) (void), void **esp)
   if (!setup_stack (esp))
     goto done;
 
-  init_stack(esp, file_name);
   /* Start address. */
   *eip = (void (*) (void)) ehdr.e_entry;
 
@@ -451,7 +437,6 @@ setup_stack (void **esp)
     {
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
       if (success)
-        //Added
         *esp = PHYS_BASE;
       else
         palloc_free_page (kpage);
@@ -477,70 +462,4 @@ install_page (void *upage, void *kpage, bool writable)
      address, then map our page there. */
   return (pagedir_get_page (t->pagedir, upage) == NULL
           && pagedir_set_page (t->pagedir, upage, kpage, writable));
-}
-
-//Added
-static void init_stack (void **esp, const char *arguments){
-  int argc = 0,i,n_bytes;
-
-  // /* Making sure a lot of arguments can be taken. Max. arguments can be fixed - easier
-  //Counting arguments
-  for (char *cptr = (char*)arguments; *cptr != '\0'; argc++)
-  {
-    //Skip valid characters
-    for (; *cptr != ' ' && *cptr != '\0'; cptr++)
-      ;
-    //Skip whitespaces
-    for (; *cptr == ' ' && *cptr != '\0'; cptr++)
-      ;
-  }
-
-  char *argv[MAX_ARGS];
-  i=argc-1;
-  for (char *save_ptr, *token = strtok_r((char*)arguments, " ", &save_ptr); token != NULL;
-       token = strtok_r(NULL, " ", &save_ptr), i--)
-  {
-    n_bytes = strlen(token) + 1;
-    *esp -= n_bytes;
-    argv[i] = *esp;
-    memcpy(*esp, token, n_bytes);
-  }
-
-
-  //Padding
-  n_bytes = 4 - (size_t)*esp % 4;
-  printf("Padding size is %d\n",n_bytes);
-  if(n_bytes){
-    *esp -= n_bytes;
-    memset(*esp, 0 ,n_bytes);
-  }  
-
-  // Word size is the size of pointer - Will be used below
-  n_bytes = sizeof(char *);
-
-  // Add sentinel
-  *esp -= n_bytes;
-  memset(*esp, 0, n_bytes);
-
-  //Transfer argv pointers to stack
-  // for (i = argc - 1; i >= 0; i--)
-  // {
-  *esp -= argc * n_bytes;
-  memcpy(*esp, &argv[0], n_bytes * argc);
-
-  //push address of argv
-  int addr = *esp;
-  *esp -= n_bytes;
-  memcpy(*esp, &addr, n_bytes);
-
-  //push argc
-  *esp -= n_bytes;
-  memcpy(*esp, &argc, n_bytes);
-
-  // null pointer
-  *esp = *esp - n_bytes;
-  memset(*esp, 0, n_bytes);
-
-  // hex_dump(PHYS_BASE - 128, PHYS_BASE - 128, 128, false);
-  return;
 }

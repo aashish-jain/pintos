@@ -4,6 +4,8 @@
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
+
+//Added
 #include <threads/synch.h>
 
 /* States in a thread's life cycle. */
@@ -105,9 +107,10 @@ struct thread
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
-#endif
+    //Added
     struct thread* parent;
     struct semaphore parent_sema;
+#endif
 
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */

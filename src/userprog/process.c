@@ -30,25 +30,23 @@ process_execute (const char *file_name)
 {
   char *fn_copy;
   tid_t tid;
-  char *save_ptr;
-  char *exec_name;
 
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
   fn_copy = palloc_get_page (0);
   if (fn_copy == NULL)
     return TID_ERROR;
+
   strlcpy (fn_copy, file_name, PGSIZE);
 
-  /*  thread name must be executable name */
-  exec_name = malloc(strlen(file_name)+1);
-  strlcpy(exec_name, file_name, strlen(file_name)+1);
-  exec_name = strtok_r(exec_name, " ", &save_ptr);
+  //Added
+  /* thread name must be executable name - getting the name */
+  char *save_ptr;
+  file_name = strtok_r(file_name, " ", &save_ptr);
   
   /* Create a new thread to execute FILE_NAME. */
-  //tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
-  tid = thread_create (exec_name, PRI_DEFAULT, start_process, fn_copy);
-  free(exec_name);
+  tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
+
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
   return tid;
@@ -97,8 +95,10 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
+  //Added
   sema_down(&thread_current()->parent_sema);
-  // return -1;
+
+  return -1;
 }
 
 /* Free the current process's resources. */

@@ -353,8 +353,6 @@ thread_yield (void)
   struct thread *cur = thread_current ();
   enum intr_level old_level;
   
-  if(intr_context()) 
-    printf("THis %s??\n",cur->name);
   ASSERT (!intr_context ());
 
   old_level = intr_disable ();
@@ -571,10 +569,14 @@ init_thread (struct thread *t, const char *name, int priority)
       t->recent_cpu = thread_get_recent_cpu();
     }
   }
+
+  #ifdef USERPROG
+    t->parent = running_thread();
+    sema_init(&t->parent_sema,0);
+    sema_init(&t->parent->parent_sema, 0);
+  #endif
   //Added ends
-  t->parent = running_thread();
-  sema_init(&t->parent_sema,0);
-  sema_init(&t->parent->parent_sema, 0);
+
 
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);
@@ -716,7 +718,6 @@ thread_sleep(int64_t ticks){
   enum intr_level old_level;
 
   ASSERT (!intr_context ());
-
 
   t->tick_to_wake = ticks;
 

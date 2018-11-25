@@ -42,7 +42,7 @@ process_execute (const char *file_name)
   //Added
   /* thread name must be executable name - getting the name */
   char *save_ptr;
-  file_name = strtok_r(file_name, " ", &save_ptr);
+  file_name = (const char *)strtok_r((char*)file_name, " ", &save_ptr);
   
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
@@ -205,11 +205,14 @@ struct Elf32_Phdr
 #define PF_W 2          /* Writable. */
 #define PF_R 4          /* Readable. */
 
-static bool setup_stack (void **esp, int argc,const char *file_name);
+static bool setup_stack (void **esp);
 static bool validate_segment (const struct Elf32_Phdr *, struct file *);
 static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
                           uint32_t read_bytes, uint32_t zero_bytes,
                           bool writable);
+
+//Added
+static void init_stack(void **esp, const char *file_name);
 
 /* Loads an ELF executable from FILE_NAME into the current thread.
    Stores the executable's entry point into *EIP
@@ -224,10 +227,6 @@ load (const char *file_name, void (**eip) (void), void **esp)
   off_t file_ofs;
   bool success = false;
   int i;
-  char *token, *save_ptr;
-  char *exec_name;
-  int argc = 0;
-
 
   /* Allocate and activate page directory. */
   t->pagedir = pagedir_create ();
@@ -235,23 +234,26 @@ load (const char *file_name, void (**eip) (void), void **esp)
     goto done;
   process_activate ();
 
-  /*  filesys_open should have executable name */
-  exec_name = malloc(strlen(file_name)+1);
-  strlcpy(exec_name, file_name, strlen(file_name)+1);
-
-  //calculate the arg count
-  for (token = strtok_r (exec_name, " ", &save_ptr); token != NULL; token = strtok_r (NULL, " ", &save_ptr))
-    argc++;
-
-  exec_name = strtok_r(exec_name, " ", &save_ptr);
+  //Added
+  char *cmd_end;
+  cmd_end = strstr(file_name, " ");
+  /*If any arguments then get the executable name from file_name by inserting NULL instead of SPACE*/
+  if(cmd_end != NULL)
+    *cmd_end = '\0';
+  
   /* Open executable file. */
-  file = filesys_open (exec_name);
-  free(exec_name);
-  if (file == NULL) 
-    {
-      printf ("load: %s: open failed\n", file_name);
-      goto done; 
-    }
+  file = filesys_open (file_name);
+
+  //Added
+  /* Reinsert SPACE to preserve the arguments*/
+  if(cmd_end!=NULL)
+    *cmd_end = ' ';
+  
+  if (file == NULL)
+  {
+    printf("load: %s: open failed\n", file_name);
+    goto done;
+  }
 
   /* Read and verify executable header. */
   if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
@@ -260,11 +262,11 @@ load (const char *file_name, void (**eip) (void), void **esp)
       || ehdr.e_machine != 3
       || ehdr.e_version != 1
       || ehdr.e_phentsize != sizeof (struct Elf32_Phdr)
-      || ehdr.e_phnum > 1024) 
-    {
-      printf ("load: %s: error loading executable\n", file_name);
-      goto done; 
-    }
+      || ehdr.e_phnum > 1024)
+  {
+    printf("load: %s: error loading executable\n", file_name);
+    goto done;
+  }
 
   /* Read program headers. */
   file_ofs = ehdr.e_phoff;
@@ -326,9 +328,13 @@ load (const char *file_name, void (**eip) (void), void **esp)
     }
 
   /* Set up stack. */
-  if (!setup_stack (esp, argc, file_name))
+  if (!setup_stack (esp))
     goto done;
 
+  //Added
+  /*Initializes the stack with the arguments */
+  init_stack(esp, file_name);
+  
   /* Start address. */
   *eip = (void (*) (void)) ehdr.e_entry;
 
@@ -451,12 +457,10 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 /* Create a minimal stack by mapping a zeroed page at the top of
    user virtual memory. */
 static bool
-setup_stack (void **esp, int argc, const char *file_name) 
+setup_stack (void **esp) 
 {
-  // printf("in setup stack\n");
   uint8_t *kpage;
   bool success = false;
-  char *token, *save_ptr;
 
   kpage = palloc_get_page (PAL_USER | PAL_ZERO);
   if (kpage != NULL) 
@@ -467,40 +471,6 @@ setup_stack (void **esp, int argc, const char *file_name)
       else
         palloc_free_page (kpage);
     }
-  // printf("argc count %d\n", argc);
-   char **argv = malloc(argc*sizeof(char *));
-   for (int i =0,token = strtok_r (file_name, " ", &save_ptr); token != NULL;
-    i++, token = strtok_r (NULL, " ", &save_ptr))
-    {
-      *esp -= strlen(token) + 1;
-      argv[i]=*esp;
-      memcpy(*esp,token,strlen(token) + 1);      
-    }
-  // add sentinel
-  *esp = *esp - 4;
-  (*(int *)(*esp)) = 0;
-  
-  for(int i=argc-1; i>=0; i--)
-  {
-    *esp-=sizeof(int);
-    memcpy(*esp,&argv[i],sizeof(int));
-  }
-  
-  //push address of argv
-  int addr = *esp;
-  *esp-=sizeof(int);
-  memcpy(*esp,&addr,sizeof(int));
-  
-  //push argc
-  *esp-=sizeof(int);
-  memcpy(*esp,&argc,sizeof(int));
-
-  // null pointer
-  *esp = *esp - 4;
-  (*(int *)(*esp)) = 0;
-  
-  free(argv);
-
   return success;
 }
 
@@ -522,4 +492,65 @@ install_page (void *upage, void *kpage, bool writable)
      address, then map our page there. */
   return (pagedir_get_page (t->pagedir, upage) == NULL
           && pagedir_set_page (t->pagedir, upage, kpage, writable));
+}
+
+
+//Added
+static void init_stack(void **esp, const char *file_name)
+{
+  int argc=0, i, n_bytes;
+  char *token, *save_ptr;
+
+  //Word size is the size of the pointer vairables
+  int word_size = sizeof(char*);
+
+  /*The number of arguments can't exceed the 
+  number of addresses that can be stored in a page */
+  char **argv = palloc_get_page(0);
+  
+  //No space than the OS crashes
+  ASSERT(argv!=NULL);
+
+  //Add the arguments to the stack
+  for (argc = 0, token = strtok_r((char*)file_name, " ", &save_ptr); token != NULL;
+       i++, token = strtok_r(NULL, " ", &save_ptr), argc++)
+  {
+    n_bytes = strlen(token) + 1;
+    *esp -= n_bytes;
+    memcpy(*esp, token, n_bytes);
+    argv[argc] = *esp;
+  }
+
+  //Padding
+  n_bytes = word_size - ((size_t)*esp % word_size);
+  if(n_bytes>0){
+    *esp -= n_bytes;
+    memset(*esp, 0, n_bytes);  
+  }
+
+  //Add sentinel
+  *esp -= word_size;
+  memset(*esp,0, word_size);
+
+  for (i = argc - 1; i >-1; i--)
+  {
+    *esp -= word_size;
+    memcpy(*esp, &argv[i], word_size);
+  }
+
+  //Push address of argv
+  int addr = (int)*esp;
+  *esp -= word_size;
+  memcpy(*esp, &addr, word_size);
+
+  //Push argc
+  *esp -= word_size;
+  memcpy(*esp, &argc, word_size);
+
+  //Fake return address
+  *esp = *esp - word_size;
+  memset(*esp, 0, word_size);
+
+  //Free the page
+  palloc_free_page(argv);
 }

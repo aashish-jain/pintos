@@ -76,7 +76,8 @@ syscall_handler(struct intr_frame *f UNUSED)
 static void safe_memory_access(void *addr)
 {
   //There are at max 3 arguments that will be in the stack
-  int safe_access = validate_address(addr) + validate_address(addr + 1) + validate_address(addr + 2) + validate_address(addr + 3);
+  int safe_access = validate_address((int*)addr) + validate_address((int*)addr + 1) + 
+  validate_address((int*)addr + 2) + validate_address((int*)addr + 3);
   if (safe_access != 4)
     exit(-1);
 }

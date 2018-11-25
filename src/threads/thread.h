@@ -110,6 +110,7 @@ struct thread
     //Added
     struct thread* parent;
     struct semaphore parent_sema;
+    int error_status;
 #endif
 
     /* Owned by thread.c. */

@@ -9,7 +9,8 @@
 //Added
 /* For shutdown poweroff */
 #include "devices/shutdown.h"
-
+/* For process_execute*/
+#include "userprog/process.h"
 //Added
 typedef int pid_t;
 static bool validate_address(void *address);
@@ -20,7 +21,7 @@ static void syscall_handler(struct intr_frame *);
 /* Function prototypes from /usr/sycall.h */
 static void halt(void) NO_RETURN;
 static void exit(int status) NO_RETURN;
-// static pid_t exec (const char *file);
+static pid_t exec (const char *file);
 // static int wait (pid_t);
 static bool create(const char *file, unsigned initial_size);
 // static bool remove (const char *file);
@@ -53,6 +54,9 @@ syscall_handler(struct intr_frame *f UNUSED)
     break;
   case SYS_EXIT:
     exit(*((int *)f->esp + 1));
+    break;
+  case SYS_EXEC:
+    exec((char *)(*((int *)f->esp + 1)));
     break;
   case SYS_CREATE:
     create((char *)(*((int *)f->esp + 2)), *((int *)f->esp + 3));
@@ -94,10 +98,21 @@ static void halt()
 
 static void exit(int status)
 {
-  thread_current()->child_exit_status = status;
+  thread_current()->child_status = status;
   printf("%s: exit(%d)\n", thread_current()->name, status);
+  //Place holder. Need to fix it.
   sema_up(&thread_current()->parent->parent_sema);
   thread_exit();
+}
+
+static pid_t exec(const char* file){
+  struct thread *t=thread_current();
+  t->exec_called=true;
+  // printf("tid=%d is calling exec\n",t->tid);
+  process_execute(file);
+  sema_down(&t->parent_sema);
+  t->exec_called=false;
+  return t->child_status;
 }
 
 static bool create(const char *file, unsigned initial_size UNUSED)
@@ -145,6 +160,6 @@ static int write(int fd, const void *buffer, unsigned length)
   return 1;
 }
 
-static void close (int fd){
+static void close (int fd UNUSED){
   return;
 }

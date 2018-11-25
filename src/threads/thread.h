@@ -109,8 +109,9 @@ struct thread
     uint32_t *pagedir;                  /* Page directory. */
     //Added
     struct thread* parent;
+    bool exec_called;
     struct semaphore parent_sema;
-    int child_exit_status;
+    int child_status;
 #endif
 
     /* Owned by thread.c. */

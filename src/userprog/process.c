@@ -343,6 +343,15 @@ load (const char *file_name, void (**eip) (void), void **esp)
  done:
   /* We arrive here whether the load is successful or not. */
   file_close (file);
+
+  //Added
+  /* Any process can only call exec once after which it waits so no race condition*/
+  if (t->parent->exec_called)
+  {
+    /* Communicate exit status to the parent. Returns -1 if not successful else tid*/
+    t->parent->child_status = (success)? t->tid : -1;
+    sema_up(&t->parent->parent_sema);
+  }
   return success;
 }
 

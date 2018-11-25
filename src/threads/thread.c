@@ -873,12 +873,7 @@ void calculate_priority_all(void){
   struct thread *t;
   struct list_elem *l;
 
-  // if(list_size(&all_list)==1){
-  //   t=list_entry(list_begin(&all_list), struct thread, allelem);
-  //   thread_calculate_priority(t);
-  // }
-  //else
-   for(l=list_begin(&all_list); l!=list_end(&all_list) ; l=list_next(l)){
+  for(l=list_begin(&all_list); l!=list_end(&all_list) ; l=list_next(l)){
     t=list_entry(l, struct thread, allelem);
     thread_calculate_priority(t);
   }

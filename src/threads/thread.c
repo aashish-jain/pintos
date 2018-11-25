@@ -856,27 +856,26 @@ thread_unblock_no_yield (struct thread *t)
   intr_set_level (old_level);
 }
 
-void calculate_recent_cpu_all(void){
+void calculate_recent_cpu_all(void)
+{
   struct thread *t;
   struct list_elem *l;
-  // if(list_size(&all_list)==1){
-  //   t=list_entry(list_begin(&all_list), struct thread, allelem);
-  //   thread_calculate_recent_cpu(t);
-  // }
-   for(l=list_begin(&all_list); l!=list_end(&all_list) ; l=list_next(l)){
-    t=list_entry(l, struct thread, allelem);
+  for (l = list_begin(&all_list); l != list_end(&all_list); l = list_next(l))
+  {
+    t = list_entry(l, struct thread, allelem);
     thread_calculate_recent_cpu(t);
   }
-} 
+}
 
-void calculate_priority_all(void){
+void calculate_priority_all(void)
+{
   struct thread *t;
   struct list_elem *l;
 
-  for(l=list_begin(&all_list); l!=list_end(&all_list) ; l=list_next(l)){
-    t=list_entry(l, struct thread, allelem);
+  for (l = list_begin(&all_list); l != list_end(&all_list); l = list_next(l))
+  {
+    t = list_entry(l, struct thread, allelem);
     thread_calculate_priority(t);
   }
   list_sort(&ready_list, priority_order_condition, NULL);
-
 }

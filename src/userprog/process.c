@@ -525,10 +525,10 @@ static void init_stack(void **esp, const char *file_name)
   n_bytes = word_size - ((size_t)*esp % word_size);
   if(n_bytes>0){
     *esp -= n_bytes;
-    memset(*esp, 0, n_bytes);  
+    memset(*esp, 0, n_bytes);
   }
 
-  //Add sentinel
+  //Add Sentinel
   *esp -= word_size;
   memset(*esp,0, word_size);
 

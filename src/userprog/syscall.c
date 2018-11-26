@@ -28,9 +28,9 @@ struct lock file_lock;
 static void halt(void) NO_RETURN;
 static void exit(int status) NO_RETURN;
 static pid_t exec(const char *file);
-static int wait(pid_t) UNUSED;
+static int wait(pid_t UNUSED) UNUSED;
 static bool create(const char *file, unsigned initial_size);
-static bool remove(const char *file);
+static bool remove(const char *file) UNUSED;
 static int open(const char *file);
 static int filesize(int fd) UNUSED;
 static int read(int fd, void *buffer, unsigned length);
@@ -139,8 +139,9 @@ static pid_t exec(const char *file)
   return t->child_status;
 }
 
-static int wait(pid_t pid)
+static int wait(pid_t pid UNUSED)
 {
+  return 1;
 }
 
 static bool create(const char *file, unsigned initial_size UNUSED)
@@ -157,7 +158,7 @@ static bool create(const char *file, unsigned initial_size UNUSED)
   }
 }
 
-static bool remove(const char *file)
+static bool remove(const char *file) 
 {
   //If no file name
   if (file == NULL)
@@ -182,6 +183,7 @@ static int filesize(int fd UNUSED)
 {
   //YET TO IMPLEMENT
   //We need to use file_lenght() here
+  return 1;
 }
 
 static int read(int fd, void *buffer UNUSED, unsigned length)
@@ -226,6 +228,7 @@ static unsigned tell(int fd UNUSED)
 {
   //YET TO IMPLEMENT
   //We need to use file_tell() here
+  return 1;
 }
 
 static void close(int fd UNUSED)

@@ -9,12 +9,17 @@
 //Added
 /* For shutdown poweroff */
 #include "devices/shutdown.h"
+//Added
+#include "filesys/filesys.h"
 
 //Added
 typedef int pid_t;
 static bool validate_address(void *address);
 static void safe_memory_access(void *addr);
 static void syscall_handler(struct intr_frame *);
+//Added
+/* For lock */
+struct lock file_lock;
 
 //Added
 /* Function prototypes from /usr/sycall.h */
@@ -23,18 +28,20 @@ static void exit(int status) NO_RETURN;
 // static pid_t exec (const char *file);
 // static int wait (pid_t);
 static bool create(const char *file, unsigned initial_size);
-// static bool remove (const char *file);
+static bool remove (const char *file);
 static int open (const char *file);
-// static int filesize (int fd);
+static int filesize (int fd);
 static int read (int fd, void *buffer, unsigned length);
 static int write(int fd, const void *buffer, unsigned length);
-// static void seek (int fd, unsigned position);
-// static unsigned tell (int fd);
+static void seek (int fd, unsigned position);
+static unsigned tell (int fd);
 static void close (int fd);
 
 void syscall_init(void)
 {
   intr_register_int(0x30, 3, INTR_ON, syscall_handler, "syscall");
+  //Added
+  lock_init(&file_lock);
 }
 
 static void
@@ -55,7 +62,7 @@ syscall_handler(struct intr_frame *f UNUSED)
     exit(*((int *)f->esp + 1));
     break;
   case SYS_CREATE:
-    create((char *)(*((int *)f->esp + 2)), *((int *)f->esp + 3));
+    f->eax = create((char *)(*((int *)f->esp + 1)), *((int *)f->esp + 2));
     break;
   case SYS_OPEN:
     open((char *)(*((int *)f->esp + 2)));
@@ -68,6 +75,18 @@ syscall_handler(struct intr_frame *f UNUSED)
     break;
   case SYS_CLOSE:
     close(*((int *)f->esp + 1));
+  case SYS_REMOVE:
+    f->eax = remove((char *)(*((int *)f->esp + 1)));
+    break;
+  case SYS_FILESIZE:
+    f->eax = filesize((*((int *)f->esp + 1)));
+    break;  
+  case SYS_SEEK:
+    seek((*((int *)f->esp + 1)), (size_t *)(*((int *)f->esp + 2)));
+    break;
+  case SYS_TELL:
+    f->eax = tell((*((int *)f->esp + 1)));
+    break;  
   default:
     printf("error %d", (*(int *)f->esp));
   }
@@ -104,9 +123,15 @@ static void exit(int status)
 static bool create(const char *file, unsigned initial_size UNUSED)
 {
   //If no file name
-  if (file == NULL)
-    exit(-1);
-  return 1;  
+  if (file == NULL){
+    // printf("I'm here\n");
+    exit(-1);}
+  else{
+    lock_acquire(&file_lock);
+    bool result = filesys_create(file,initial_size);
+    lock_release(&file_lock);
+    return result;
+  } 
 }
 
 static int open (const char *file){
@@ -148,4 +173,36 @@ static int write(int fd, const void *buffer, unsigned length)
 
 static void close (int fd){
   return;
+}
+
+static bool remove(const char *file)
+{
+  //If no file name
+  if (file == NULL){
+    // printf("I'm here\n");
+    exit(-1);}
+  else{
+    lock_acquire(&file_lock);
+    bool result = filesys_remove(file);
+    lock_release(&file_lock);
+    return result;
+  } 
+}
+
+static int filesize (int fd)
+{
+  //YET TO IMPLEMENT
+  //We need to use file_lenght() here 
+}
+
+static void seek (int fd, unsigned position)
+{
+  //YET TO IMPLEMENT
+  //We need to use file_seek() here
+}
+
+static unsigned tell (int fd)
+{
+  //YET TO IMPLEMENT
+  //We need to use file_tell() here
 }

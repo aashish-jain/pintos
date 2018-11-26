@@ -58,6 +58,9 @@ syscall_handler(struct intr_frame *f UNUSED)
   case SYS_EXEC:
     exec((char *)(*((int *)f->esp + 1)));
     break;
+  case SYS_WAIT:
+    // wait(t->pid);
+    break;
   case SYS_CREATE:
     create((char *)(*((int *)f->esp + 2)), *((int *)f->esp + 3));
     break;

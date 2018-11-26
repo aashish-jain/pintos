@@ -11,31 +11,39 @@
 #include "devices/shutdown.h"
 /* For process_execute*/
 #include "userprog/process.h"
+/* For file operations */
+#include "filesys/filesys.h"
+
 //Added
 typedef int pid_t;
 static bool validate_address(void *address);
 static void safe_memory_access(void *addr);
 static void syscall_handler(struct intr_frame *);
+//Added
+/* For lock */
+struct lock file_lock;
 
 //Added
 /* Function prototypes from /usr/sycall.h */
 static void halt(void) NO_RETURN;
 static void exit(int status) NO_RETURN;
-static pid_t exec (const char *file);
-// static int wait (pid_t);
+static pid_t exec(const char *file);
+static int wait(pid_t) UNUSED;
 static bool create(const char *file, unsigned initial_size);
-// static bool remove (const char *file);
-static int open (const char *file);
-// static int filesize (int fd);
-static int read (int fd, void *buffer, unsigned length);
+static bool remove(const char *file);
+static int open(const char *file);
+static int filesize(int fd) UNUSED;
+static int read(int fd, void *buffer, unsigned length);
 static int write(int fd, const void *buffer, unsigned length);
-// static void seek (int fd, unsigned position);
-// static unsigned tell (int fd);
-static void close (int fd);
+static void seek(int fd, unsigned position);
+static unsigned tell(int fd);
+static void close(int fd);
 
 void syscall_init(void)
 {
   intr_register_int(0x30, 3, INTR_ON, syscall_handler, "syscall");
+  //Added
+  lock_init(&file_lock);
 }
 
 static void
@@ -62,16 +70,27 @@ syscall_handler(struct intr_frame *f UNUSED)
     // wait(t->pid);
     break;
   case SYS_CREATE:
-    create((char *)(*((int *)f->esp + 2)), *((int *)f->esp + 3));
+    f->eax = create((char *)(*((int *)f->esp + 1)), *((int *)f->esp + 2));
+    break;
+  case SYS_REMOVE:
+    f->eax = filesize((*((int *)f->esp + 1)));
     break;
   case SYS_OPEN:
     open((char *)(*((int *)f->esp + 2)));
+    break;
+  case SYS_FILESIZE:
     break;
   case SYS_READ:
     read(*((int *)f->esp + 1), (char *)(*((int *)f->esp + 2)), *((size_t *)f->esp + 3));
     break;
   case SYS_WRITE:
     write(*((int *)f->esp + 1), (char *)(*((int *)f->esp + 2)), *((size_t *)f->esp + 3));
+    break;
+  case SYS_SEEK:
+    seek((*((int *)f->esp + 1)), (size_t)(*((int *)f->esp + 2)));
+    break;
+  case SYS_TELL:
+    f->eax = tell((*((int *)f->esp + 1)));
     break;
   case SYS_CLOSE:
     close(*((int *)f->esp + 1));
@@ -83,7 +102,8 @@ syscall_handler(struct intr_frame *f UNUSED)
 static void safe_memory_access(void *addr)
 {
   //There are at max 3 arguments that will be in the stack
-  int safe_access = validate_address(addr) + validate_address(addr + 1) + validate_address(addr + 2) + validate_address(addr + 3);
+  int safe_access = validate_address((int *)addr) + validate_address((int *)addr + 1) +
+                    validate_address((int *)addr + 2) + validate_address((int *)addr + 3);
   if (safe_access != 4)
     exit(-1);
 }
@@ -108,14 +128,19 @@ static void exit(int status)
   thread_exit();
 }
 
-static pid_t exec(const char* file){
-  struct thread *t=thread_current();
-  t->exec_called=true;
+static pid_t exec(const char *file)
+{
+  struct thread *t = thread_current();
+  t->exec_called = true;
   // printf("tid=%d is calling exec\n",t->tid);
   process_execute(file);
   sema_down(&t->parent_sema);
-  t->exec_called=false;
+  t->exec_called = false;
   return t->child_status;
+}
+
+static int wait(pid_t pid)
+{
 }
 
 static bool create(const char *file, unsigned initial_size UNUSED)
@@ -123,17 +148,45 @@ static bool create(const char *file, unsigned initial_size UNUSED)
   //If no file name
   if (file == NULL)
     exit(-1);
-  return 1;  
+  else
+  {
+    lock_acquire(&file_lock);
+    bool result = filesys_create(file, initial_size);
+    lock_release(&file_lock);
+    return result;
+  }
 }
 
-static int open (const char *file){
-  if(file==NULL)
+static bool remove(const char *file)
+{
+  //If no file name
+  if (file == NULL)
+    exit(-1);
+  else
+  {
+    lock_acquire(&file_lock);
+    bool result = filesys_remove(file);
+    lock_release(&file_lock);
+    return result;
+  }
+}
+
+static int open(const char *file)
+{
+  if (file == NULL)
     exit(-1);
   return 1;
 }
 
-static int read (int fd, void *buffer UNUSED, unsigned length){
-  if(length==0)
+static int filesize(int fd UNUSED)
+{
+  //YET TO IMPLEMENT
+  //We need to use file_lenght() here
+}
+
+static int read(int fd, void *buffer UNUSED, unsigned length)
+{
+  if (length == 0)
     exit(-1);
   switch (fd)
   {
@@ -147,7 +200,7 @@ static int read (int fd, void *buffer UNUSED, unsigned length){
 
 static int write(int fd, const void *buffer, unsigned length)
 {
-  if(length==0 ||buffer==NULL)
+  if (length == 0 || buffer == NULL)
     exit(-1);
   switch (fd)
   {
@@ -163,6 +216,19 @@ static int write(int fd, const void *buffer, unsigned length)
   return 1;
 }
 
-static void close (int fd UNUSED){
+static void seek(int fd UNUSED, unsigned position UNUSED)
+{
+  //YET TO IMPLEMENT
+  //We need to use file_seek() here
+}
+
+static unsigned tell(int fd UNUSED)
+{
+  //YET TO IMPLEMENT
+  //We need to use file_tell() here
+}
+
+static void close(int fd UNUSED)
+{
   return;
 }

@@ -122,10 +122,17 @@ static void halt()
 
 static void exit(int status)
 {
-  thread_current()->child_exec_status = status;
-  printf("%s: exit(%d)\n", thread_current()->name, status);
+  struct thread *t = thread_current();
+  //Printing the status before exiting
+  printf("%s: exit(%d)\n", t->name, status);
+  if(t->parent!=NULL && t->parent->exec_wait_called){
+    t = t->parent;
+    t->child_exec_status = status;
+    sema_up(&t->parent_sema);
+    //TODO Add to wait list
+  }
   //Place holder. Need to fix it.
-  sema_up(&thread_current()->parent->parent_sema);
+  // sema_up(&thread_current()->parent->parent_sema);
   thread_exit();
 }
 

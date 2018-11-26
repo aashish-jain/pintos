@@ -122,7 +122,7 @@ static void halt()
 
 static void exit(int status)
 {
-  thread_current()->child_status = status;
+  thread_current()->child_exec_status = status;
   printf("%s: exit(%d)\n", thread_current()->name, status);
   //Place holder. Need to fix it.
   sema_up(&thread_current()->parent->parent_sema);
@@ -132,12 +132,12 @@ static void exit(int status)
 static pid_t exec(const char *file)
 {
   struct thread *t = thread_current();
-  t->exec_called = true;
+  t->exec_wait_called = true;
   // printf("tid=%d is calling exec\n",t->tid);
   process_execute(file);
   sema_down(&t->parent_sema);
-  t->exec_called = false;
-  return t->child_status;
+  t->exec_wait_called = false;
+  return t->child_exec_status;
 }
 
 static int wait(pid_t pid)

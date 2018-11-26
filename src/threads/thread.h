@@ -108,15 +108,26 @@ struct thread
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
     //Added
-    struct thread* parent;
-    bool exec_called;
-    struct semaphore parent_sema;
-    int child_status;
+    struct thread* parent;              /* Points to the parent thread 
+                                          (no parents for main and idle)*/
+    bool exec_wait_called;              /* Boolean variable to indicate if thread is sleeping*/
+    struct semaphore parent_sema;       /* Semaphore to put the thread to sleep / wake up*/
+    int child_exec_status;              /* Contains the exec status of child if exec was called */
+    struct list child_status_list;      /* Lists containing the exit statuses of a thread's                                               children*/
 #endif
 
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
   };
+
+//Added
+#ifdef USERPROG
+struct child_exit_status{
+  tid_t tid;                            /* Id of the child thread  */
+  int exit_status;                      /* Exit status of the child*/
+  struct list_elem elem;                /* List element for the struct*/
+};
+#endif
 
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.

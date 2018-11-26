@@ -33,7 +33,7 @@
 #include "threads/thread.h"
 
 
-bool cond_order_func(struct list_elem *, struct list_elem *, void *);
+bool cond_order_func(const struct list_elem *,const struct list_elem *, void *);
 /* Initializes semaphore SEMA to VALUE.  A semaphore is a
    nonnegative integer along with two atomic operators for
    manipulating it:
@@ -418,7 +418,7 @@ cond_broadcast (struct condition *cond, struct lock *lock)
 
 //Added
 bool
-cond_order_func(struct list_elem *a, struct list_elem *b, void *aux UNUSED){
+cond_order_func(const struct list_elem *a,const struct list_elem *b, void *aux UNUSED){
   struct semaphore_elem *x = list_entry(a, struct semaphore_elem, elem);
   struct semaphore_elem *y = list_entry(b, struct semaphore_elem, elem);
   return x->t->priority > y->t->priority; 

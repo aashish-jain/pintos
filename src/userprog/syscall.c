@@ -28,7 +28,7 @@ struct lock file_lock;
 static void halt(void) NO_RETURN;
 static void exit(int status) NO_RETURN;
 static pid_t exec(const char *file);
-static int wait(pid_t UNUSED) UNUSED;
+static int wait(pid_t pid);
 static bool create(const char *file, unsigned initial_size);
 static bool remove(const char *file) UNUSED;
 static int open(const char *file);
@@ -67,7 +67,7 @@ syscall_handler(struct intr_frame *f UNUSED)
     exec((char *)(*((int *)f->esp + 1)));
     break;
   case SYS_WAIT:
-    // wait(t->pid);
+    wait((*((pid_t *)f->esp + 1)));
     break;
   case SYS_CREATE:
     f->eax = create((char *)(*((int *)f->esp + 1)), *((int *)f->esp + 2));
@@ -94,6 +94,7 @@ syscall_handler(struct intr_frame *f UNUSED)
     break;
   case SYS_CLOSE:
     close(*((int *)f->esp + 1));
+    break;
   default:
     printf("error %d", (*(int *)f->esp));
   }
@@ -139,8 +140,9 @@ static pid_t exec(const char *file)
   return t->child_status;
 }
 
-static int wait(pid_t pid UNUSED)
+static int wait(pid_t pid)
 {
+  process_wait(pid);
   return 1;
 }
 

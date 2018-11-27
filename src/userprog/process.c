@@ -19,7 +19,7 @@
 #include "threads/vaddr.h"
 
 /* For malloc */
-#include <stdlib.h>
+#include "threads/malloc.h"
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
@@ -46,14 +46,12 @@ process_execute (const char *file_name)
 
   strlcpy (fn_copy, file_name, PGSIZE);
 
+  //Added
+  /* thread name must be executable name - getting the name */
   char *cmd_end = strstr(file_name, " ");
   if(cmd_end!=NULL)
     *cmd_end = '\0';
   
-  //Added
-  /* thread name must be executable name - getting the name */
-  // char *save_ptr;
-  // file_name = (const char *)strtok_r((char*)file_name, " ", &save_ptr);
   
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);

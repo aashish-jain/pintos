@@ -128,9 +128,12 @@ static void exit(int status)
   printf("%s: exit(%d)\n", thread_current()->name, status);
   if (t->parent != NULL)
   {
+    // printf("Exiting (child is) Thread name is %s\n",t->name);
     t = t->parent;
     //Place holder. Need to fix it.
+    // printf("Exiting (Parent is)Thread name is %s\n",t->name);
     sema_up(&t->parent_sema);
+    // printf("done\n");
   }
   thread_exit();
 }

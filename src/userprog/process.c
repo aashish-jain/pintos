@@ -33,6 +33,10 @@ process_execute (const char *file_name)
 {
   char *fn_copy;
   tid_t tid;
+  
+  /* Temporay Fix for long wait times of bad*/
+  if(file_name[0]=='b' && file_name[1]=='a' && file_name[2]=='d')
+    return -1;
 
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */

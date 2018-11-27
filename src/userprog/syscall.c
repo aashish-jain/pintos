@@ -16,13 +16,13 @@
 
 //Added
 typedef int pid_t;
-static bool validate_address(void *address);
+static bool validate_address(char *address);
 static void safe_memory_access(void *addr);
 static void syscall_handler(struct intr_frame *);
 //Added
 /* For lock */
 struct lock file_lock;
-
+int x;
 //Added
 /* Function prototypes from /usr/sycall.h */
 static void halt(void) NO_RETURN;
@@ -52,7 +52,7 @@ syscall_handler(struct intr_frame *f UNUSED)
   //Original
   // printf ("system call!\n");
   // thread_exit ();
-
+  int *esp ;
   //Added
   safe_memory_access(f->esp);
   switch (*(int *)f->esp)
@@ -64,12 +64,21 @@ syscall_handler(struct intr_frame *f UNUSED)
     exit(*((int *)f->esp + 1));
     break;
   case SYS_EXEC:
+    esp = f->esp;
+    x = is_user_vaddr((char *)*(esp + 1))  && pagedir_get_page(thread_current()->pagedir, (char *)*(esp + 1)) != NULL;
+    if (!x)
+      exit(-1);
     exec((char *)(*((int *)f->esp + 1)));
     break;
   case SYS_WAIT:
     wait((*((pid_t *)f->esp + 1)));
     break;
   case SYS_CREATE:
+    esp = f->esp;
+    x = is_user_vaddr((char *)*(esp + 1))  && pagedir_get_page(thread_current()->pagedir, (char *)*(esp + 1)) != NULL;
+    if (!x)
+      exit(-1);
+    // validate_address((char *)*(esp + 1));
     f->eax = create((char *)(*((int *)f->esp + 1)), *((int *)f->esp + 2));
     break;
   case SYS_REMOVE:
@@ -84,7 +93,7 @@ syscall_handler(struct intr_frame *f UNUSED)
     read(*((int *)f->esp + 1), (char *)(*((int *)f->esp + 2)), *((size_t *)f->esp + 3));
     break;
   case SYS_WRITE:
-    write(*((int *)f->esp + 1), (char *)(*((int *)f->esp + 2)), *((size_t *)f->esp + 3));
+    f->eax = write(*((int *)f->esp + 1), (char *)(*((int *)f->esp + 2)), *((size_t *)f->esp + 3));
     break;
   case SYS_SEEK:
     seek((*((int *)f->esp + 1)), (size_t)(*((int *)f->esp + 2)));
@@ -109,7 +118,7 @@ static void safe_memory_access(void *addr)
     exit(-1);
 }
 
-static bool validate_address(void *address)
+static bool validate_address(char *address)
 {
   // check if the pointer is within PHYS_BASE or in the thread's page
   return is_user_vaddr(address) && pagedir_get_page(thread_current()->pagedir, address) != NULL;
@@ -155,7 +164,7 @@ static int wait(pid_t pid)
   return  status;
 }
 
-static bool create(const char *file, unsigned initial_size UNUSED)
+static bool create(const char *file, unsigned initial_size)
 {
   //If no file name
   if (file == NULL)
@@ -187,6 +196,10 @@ static int open(const char *file)
 {
   if (file == NULL)
     exit(-1);
+  struct file *f = filesys_open(file);
+  if(f == NULL)
+    exit(-1);
+
   return 1;
 }
 

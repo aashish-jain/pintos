@@ -886,6 +886,9 @@ void calculate_priority_all(void)
 struct thread *get_thread(tid_t tid){
   struct thread *t;
   struct list_elem *l;
+  /* Only main thread in the list */
+  if(list_begin(&all_list) == list_end(&all_list))
+    return NULL;
   for (l = list_begin(&all_list); l != list_end(&all_list); l = list_next(l))
   {
     t = list_entry(l, struct thread, allelem);

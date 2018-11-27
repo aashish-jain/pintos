@@ -123,12 +123,14 @@ static void halt()
 static void exit(int status)
 {
   struct thread *t = thread_current();
+  struct child_exit_status *ces = malloc(sizeof(struct child_exit_status));
+
   printf("%s: exit(%d)\n", thread_current()->name, status);
   if (t->parent != NULL)
   {
     t = t->parent;
     //Place holder. Need to fix it.
-    sema_up(&thread_current()->parent->parent_sema);
+    sema_up(&t->parent_sema);
   }
   thread_exit();
 }
@@ -146,7 +148,11 @@ static pid_t exec(const char *file)
 
 static int wait(pid_t pid)
 {
-  return  process_wait(pid);
+  struct thread *t = thread_current();
+  t->exec_wait_called = true;
+  int status = process_wait(pid);
+  t->exec_wait_called = false;
+  return  status;
 }
 
 static bool create(const char *file, unsigned initial_size UNUSED)

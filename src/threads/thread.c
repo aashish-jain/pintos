@@ -575,6 +575,7 @@ init_thread (struct thread *t, const char *name, int priority)
     sema_init(&t->parent_sema,0);
     t->exec_wait_called = false;
     t->child_exec_status=0;
+    list_init(&t->child_status_list);
   #endif
   //Added ends
 
@@ -879,4 +880,17 @@ void calculate_priority_all(void)
     thread_calculate_priority(t);
   }
   list_sort(&ready_list, priority_order_condition, NULL);
+}
+
+/* Returns a thread with a given tid if exist else returns NULL*/
+struct thread *get_thread(tid_t tid){
+  struct thread *t;
+  struct list_elem *l;
+  for (l = list_begin(&all_list); l != list_end(&all_list); l = list_next(l))
+  {
+    t = list_entry(l, struct thread, allelem);
+    if(t->tid == tid)
+      return t;
+  }
+  return NULL;
 }

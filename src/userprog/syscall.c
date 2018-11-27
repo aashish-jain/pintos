@@ -122,10 +122,14 @@ static void halt()
 
 static void exit(int status)
 {
-  thread_current()->child_exec_status = status;
+  struct thread *t = thread_current();
   printf("%s: exit(%d)\n", thread_current()->name, status);
-  //Place holder. Need to fix it.
-  sema_up(&thread_current()->parent->parent_sema);
+  if (t->parent != NULL)
+  {
+    t = t->parent;
+    //Place holder. Need to fix it.
+    sema_up(&thread_current()->parent->parent_sema);
+  }
   thread_exit();
 }
 
@@ -142,8 +146,7 @@ static pid_t exec(const char *file)
 
 static int wait(pid_t pid)
 {
-  process_wait(pid);
-  return 1;
+  return  process_wait(pid);
 }
 
 static bool create(const char *file, unsigned initial_size UNUSED)
@@ -188,10 +191,12 @@ static int filesize(int fd UNUSED)
   return 1;
 }
 
-static int read(int fd, void *buffer UNUSED, unsigned length)
+static int read(int fd, void *buffer UNUSED, unsigned length UNUSED)
 {
-  if (length == 0)
+  if (buffer == NULL)
     exit(-1);
+
+  //TODO: check if the reading is within limits(use file_size)
   switch (fd)
   {
   //Uknown descriptor then return error
@@ -204,7 +209,7 @@ static int read(int fd, void *buffer UNUSED, unsigned length)
 
 static int write(int fd, const void *buffer, unsigned length)
 {
-  if (length == 0 || buffer == NULL)
+  if (buffer == NULL)
     exit(-1);
   switch (fd)
   {

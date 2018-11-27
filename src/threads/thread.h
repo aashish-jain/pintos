@@ -185,6 +185,8 @@ void thread_unblock_no_yield(struct thread *);
 
 void calculate_recent_cpu_all(void);
 void calculate_priority_all(void);
+
+struct thread* get_thread(tid_t);
 //Added ends//
 
 #endif /* threads/thread.h */

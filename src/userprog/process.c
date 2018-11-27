@@ -18,6 +18,9 @@
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 
+/* For malloc */
+#include <stdlib.h>
+
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
 
@@ -97,11 +100,16 @@ start_process (void *file_name_)
    This function will be implemented in problem 2-2.  For now, it
    does nothing. */
 int
-process_wait (tid_t child_tid UNUSED) 
+process_wait (tid_t child_tid) 
 {
   //Added
-  sema_down(&thread_current()->parent_sema);
-
+  struct thread *child_thread= get_thread(child_tid), *parent_thread=thread_current();
+  //If child thread doesn't exist or already waited
+  if(child_thread == NULL)
+    return -1;
+  else if(child_thread->parent == parent_thread)
+    sema_down(&parent_thread->parent_sema);
+  //Get value from the list of child statuses
   return -1;
 }
 

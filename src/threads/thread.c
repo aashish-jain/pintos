@@ -570,6 +570,7 @@ init_thread (struct thread *t, const char *name, int priority)
     }
   }
 
+
   #ifdef USERPROG
     t->parent = (t!=initial_thread && t!=idle_thread)? thread_current() : NULL;
     sema_init(&t->parent_sema,0);
@@ -577,6 +578,7 @@ init_thread (struct thread *t, const char *name, int priority)
     t->child_exec_status=0;
     list_init(&t->child_status_list);
     t->exe_file = NULL;
+    list_init(&t->desc_file_list);
   #endif
   //Added ends
 

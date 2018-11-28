@@ -18,6 +18,14 @@
 /* For malloc */
 #include "threads/malloc.h"
 
+/* Structure to map descriptor to function*/
+typedef struct desc_file_mapper{
+  int fd;
+  struct file *f;
+  struct list_elem elem;
+} df_map;
+
+
 static void syscall_handler(struct intr_frame *);
 
 //Added
@@ -40,6 +48,8 @@ static unsigned tell(int fd);
 static void close(int fd);
 /* For lock */
 struct lock file_lock;
+/* For Retieving file desciptors */
+// struct file* get_file(unsigned int fd);
 
 void syscall_init(void)
 {
@@ -56,7 +66,7 @@ syscall_handler(struct intr_frame *f UNUSED)
   // thread_exit ();
 
   //Added
-  int *esp = f->esp,x;
+  int *esp = f->esp;
   safe_memory_access(esp);
   switch (*esp)
   {
@@ -67,26 +77,19 @@ syscall_handler(struct intr_frame *f UNUSED)
     exit(*(esp + 1));
     break;
   case SYS_EXEC:
-    x = is_user_vaddr((char *)*(esp + 1))  && pagedir_get_page(thread_current()->pagedir, (char *)*(esp + 1)) != NULL;
-    if (!x)
-      exit(-1);
     f->eax = exec((char *)*(esp + 1));
     break;
   case SYS_WAIT:
     wait(*(esp + 1));
     break;
   case SYS_CREATE:
-    x = is_user_vaddr((char *)*(esp + 1))  && pagedir_get_page(thread_current()->pagedir, (char *)*(esp + 1)) != NULL;
-    if (!x)
-      exit(-1);
-    validate_address((char *)*(esp + 1));
     f->eax = create((char *)*(esp + 1), *(esp + 2));
     break;
   case SYS_REMOVE:
     f->eax = filesize(*(esp + 1));
     break;
   case SYS_OPEN:
-    f->eax = open((char *)*(esp + 2));
+    f->eax = open((char *)*(esp + 1));
     break;
   case SYS_FILESIZE:
     break;
@@ -146,6 +149,9 @@ static void exit(int status)
 
 static pid_t exec(const char *file)
 {
+  //Bad pointer
+  if(!validate_address((void*)file))
+    exit(-1);
   struct thread *t = thread_current();
   t->exec_wait_called = true;
   process_execute(file);
@@ -165,8 +171,8 @@ static int wait(pid_t pid)
 
 static bool create(const char *file, unsigned initial_size)
 {
-  //If no file name
-  if (file == NULL)
+  //If no file name OR bad pointer
+  if (file == NULL || !validate_address((void*)file))
     exit(-1);
   else
   {
@@ -193,13 +199,30 @@ static bool remove(const char *file)
 
 static int open(const char *file)
 {
+  //If no file name given
   if (file == NULL)
-    exit(-1);
-  struct file *f = filesys_open(file);
-  if (f == NULL)
+    return -1;
+  //If bad pointer
+  if (!validate_address((void *)file))
     exit(-1);
 
-  return 1;
+  struct thread *t = thread_current();
+  df_map *dfm = malloc(sizeof(df_map));
+  lock_acquire(&file_lock);
+  dfm->f = filesys_open(file);
+  lock_release(&file_lock);
+
+  //Missing file
+  if (dfm->f == NULL)
+    return -1;
+  //Else set fd=2 if no elements in desc_file_list
+  else if (list_empty(&t->desc_file_list))
+    dfm->fd = 2;
+  //Else fd = last file descriptor + 1
+  else
+    dfm->fd = (list_entry(list_back(&t->desc_file_list), df_map, elem)->fd) + 1;
+  list_push_back(&t->desc_file_list, &(dfm->elem));
+  return dfm->fd;
 }
 
 static int filesize(int fd UNUSED)
@@ -209,36 +232,23 @@ static int filesize(int fd UNUSED)
   return 1;
 }
 
-static int read(int fd, void *buffer UNUSED, unsigned length UNUSED)
+static int read(int fd UNUSED, void *buffer, unsigned length UNUSED)
 {
-  if (buffer == NULL)
+  if (buffer == NULL || !validate_address(buffer))
     exit(-1);
-
-  //TODO: check if the reading is within limits(use file_size)
-  switch (fd)
-  {
-  //Uknown descriptor then return error
-  default:
-    exit(-1);
-  }
-  //Success
   return 1;
 }
 
 static int write(int fd, const void *buffer, unsigned length)
 {
-  if (buffer == NULL)
+  if (buffer == NULL || !validate_address((void*)buffer))
     exit(-1);
-  switch (fd)
-  {
-  //Console
-  case 1:
+  //Write to console
+  else if(fd==1)
     putbuf(buffer, length);
-    break;
-  //Uknown descriptor then return error
-  default:
+  //Unknown case
+  else
     exit(-1);
-  }
   //Success
   return 1;
 }
@@ -256,7 +266,25 @@ static unsigned tell(int fd UNUSED)
   return 1;
 }
 
-static void close(int fd UNUSED)
+static void close(int fd)
 {
-  return;
+  struct thread *t = thread_current();
+  df_map *fdm;
+  struct list_elem *l;
+  for (l = list_begin(&t->desc_file_list); l != list_end(&t->desc_file_list); l = list_next(l))
+  {
+    fdm = list_entry(l, df_map, elem);
+    if(fd == fdm->fd){
+      file_close(fdm->f);
+      list_remove(l);
+    }
+  }
 }
+
+// /* Returns NULL if no file or illegal file desriptor */
+// struct file* get_file(unsigned int fd){
+//   struct thread *t=thread_current();
+//   if(list_empty(t))
+//     return NULL;
+  
+// }

@@ -115,6 +115,7 @@ struct thread
     int child_exec_status;              /* Contains the exec status of child if exec was called */
     struct list child_status_list;      /* Lists containing the exit statuses of a thread's                                               children*/
     struct file *exe_file;               /* Pointer to the executable file */
+    struct list desc_file_list;     /* Descriptor file map list*/
 #endif
 
     /* Owned by thread.c. */

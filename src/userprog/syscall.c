@@ -42,7 +42,7 @@ static int wait(pid_t pid);
 static bool create(const char *file, unsigned initial_size);
 static bool remove(const char *file);
 static int open(const char *file);
-static int filesize(int fd) UNUSED;
+static int filesize(int fd);
 static int read(int fd, void *buffer, unsigned length);
 static int write(int fd, const void *buffer, unsigned length);
 static void seek(int fd, unsigned position);
@@ -153,7 +153,7 @@ static void exit(int status)
 
 static pid_t exec(const char *file)
 {
-  pid_t pid;
+  pid_t pid=-1;
   //Bad pointer
   if (!validate_address((void *)file))
     exit(-1);

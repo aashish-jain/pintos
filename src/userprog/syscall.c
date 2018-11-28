@@ -78,7 +78,7 @@ syscall_handler(struct intr_frame *f UNUSED)
     exit(*(esp + 1));
     break;
   case SYS_EXEC:
-    f->eax = exec((char *)*(esp + 1));
+    f->eax = exec((const char *)*(esp + 1));
     break;
   case SYS_WAIT:
     wait(*(esp + 1));
@@ -138,12 +138,13 @@ static void halt()
 static void exit(int status)
 {
   struct thread *t = thread_current();
-  // struct child_exit_status *ces = malloc(sizeof(struct child_exit_status));
+  struct child_exit_status *ces = malloc(sizeof(struct child_exit_status));
 
   printf("%s: exit(%d)\n", thread_current()->name, status);
   if (t->parent != NULL)
   {
     t = t->parent;
+    list_push_back(&t->child_status_list, &ces->elem);
     sema_up(&t->parent_sema);
   }
   thread_exit();
@@ -151,15 +152,16 @@ static void exit(int status)
 
 static pid_t exec(const char *file)
 {
+  pid_t pid;
   //Bad pointer
   if (!validate_address((void *)file))
     exit(-1);
   struct thread *t = thread_current();
   t->exec_wait_called = true;
-  process_execute(file);
+  pid = process_execute(file);
   sema_down(&t->parent_sema);
   t->exec_wait_called = false;
-  return t->child_exec_status;
+  return (t->exec_success) ? pid : -1;
 }
 
 static int wait(pid_t pid)
@@ -211,9 +213,7 @@ static int open(const char *file)
 
   struct thread *t = thread_current();
   df_map *dfm = malloc(sizeof(df_map));
-  lock_acquire(&file_lock);
   dfm->f = filesys_open(file);
-  lock_release(&file_lock);
 
   //Missing file
   if (dfm->f == NULL)
@@ -280,11 +280,9 @@ static int write(int fd, const void *buffer, unsigned length)
 
 static void seek(int fd, unsigned position)
 {
-  // int code = -1;
-  //Find the file
   df_map *df = get_file(fd, false);
   if (df != NULL)
-    file_seek(df->f,(off_t)position);
+    file_seek(df->f, (off_t)position);
   return;
 }
 

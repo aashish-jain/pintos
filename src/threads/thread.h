@@ -191,4 +191,8 @@ void calculate_priority_all(void);
 struct thread* get_thread(tid_t);
 //Added ends//
 
+//Added
+// int get_fd();
+// int add_fd();
+
 #endif /* threads/thread.h */

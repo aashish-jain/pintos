@@ -66,7 +66,6 @@ syscall_handler(struct intr_frame *f UNUSED)
   //Original
   // printf ("system call!\n");
   // thread_exit ();
-
   //Added
   int *esp = f->esp;
   safe_memory_access(esp);

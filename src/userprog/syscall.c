@@ -94,7 +94,7 @@ syscall_handler(struct intr_frame *f UNUSED)
     f->eax = open((char *)*(esp + 1));
     break;
   case SYS_FILESIZE:
-    f->eax = filesize(*(esp + 1)); 
+    f->eax = filesize(*(esp + 1));
     break;
   case SYS_READ:
     f->eax = read(*(esp + 1), (char *)*(esp + 2), *(esp + 3));
@@ -139,12 +139,13 @@ static void halt()
 static void exit(int status)
 {
   struct thread *t = thread_current();
-  // struct child_exit_status *ces = malloc(sizeof(struct child_exit_status));
+  struct child_exit_status *ces = malloc(sizeof(struct child_exit_status));
 
   printf("%s: exit(%d)\n", thread_current()->name, status);
   if (t->parent != NULL)
   {
     t = t->parent;
+    list_push_back(&t->child_status_list, &ces->elem);
     sema_up(&t->parent_sema);
   }
   thread_exit();
@@ -161,7 +162,7 @@ static pid_t exec(const char *file)
   pid = process_execute(file);
   sema_down(&t->parent_sema);
   t->exec_wait_called = false;
-  return (t->exec_success)?pid:-1;
+  return (t->exec_success) ? pid : -1;
 }
 
 static int wait(pid_t pid)
@@ -282,7 +283,7 @@ static void seek(int fd, unsigned position)
 {
   df_map *df = get_file(fd, false);
   if (df != NULL)
-    file_seek(df->f,(off_t)position);
+    file_seek(df->f, (off_t)position);
   return;
 }
 

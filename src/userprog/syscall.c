@@ -212,9 +212,7 @@ static int open(const char *file)
 
   struct thread *t = thread_current();
   df_map *dfm = malloc(sizeof(df_map));
-  lock_acquire(&file_lock);
   dfm->f = filesys_open(file);
-  lock_release(&file_lock);
 
   //Missing file
   if (dfm->f == NULL)
@@ -293,7 +291,7 @@ static unsigned tell(int fd)
   df_map *df = get_file(fd, false);
   if (df != NULL)
     count = file_tell(df->f);
-  return count;  return 1;
+  return count;
 }
 
 static void close(int fd)

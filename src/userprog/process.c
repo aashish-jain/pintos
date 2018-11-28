@@ -48,9 +48,8 @@ process_execute (const char *file_name)
 
   //Added
   /* thread name must be executable name - getting the name */
-  char *cmd_end = strstr(file_name, " ");
-  if(cmd_end!=NULL)
-    *cmd_end = '\0';
+  char *cmd_end;
+  file_name = strtok_r((char*)file_name, " ", &cmd_end);
   
   
   /* Create a new thread to execute FILE_NAME. */
@@ -79,7 +78,7 @@ start_process (void *file_name_)
 
   /* If load failed, quit. */
   palloc_free_page (file_name);
-  if (!success) 
+  if (!success)
     thread_exit ();
 
   /* Start the user process by simulating a return from an

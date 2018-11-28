@@ -17,14 +17,16 @@
 #include "filesys/file.h"
 /* For malloc */
 #include "threads/malloc.h"
+/* For input */
+#include "devices/input.h"
 
 /* Structure to map descriptor to function*/
-typedef struct desc_file_mapper{
+typedef struct desc_file_mapper
+{
   int fd;
   struct file *f;
   struct list_elem elem;
 } df_map;
-
 
 static void syscall_handler(struct intr_frame *);
 
@@ -38,7 +40,7 @@ static void exit(int status) NO_RETURN;
 static pid_t exec(const char *file);
 static int wait(pid_t pid);
 static bool create(const char *file, unsigned initial_size);
-static bool remove(const char *file) UNUSED;
+static bool remove(const char *file);
 static int open(const char *file);
 static int filesize(int fd) UNUSED;
 static int read(int fd, void *buffer, unsigned length);
@@ -48,8 +50,8 @@ static unsigned tell(int fd);
 static void close(int fd);
 /* For lock */
 struct lock file_lock;
-/* For Retieving file desciptors */
-// struct file* get_file(unsigned int fd);
+/* For Retieving file desciptors or file*/
+void *get_file(int fd, bool file);
 
 void syscall_init(void)
 {
@@ -86,7 +88,7 @@ syscall_handler(struct intr_frame *f UNUSED)
     f->eax = create((char *)*(esp + 1), *(esp + 2));
     break;
   case SYS_REMOVE:
-    f->eax = filesize(*(esp + 1));
+    f->eax = remove((char *)*(esp + 1));
     break;
   case SYS_OPEN:
     f->eax = open((char *)*(esp + 1));
@@ -150,7 +152,7 @@ static void exit(int status)
 static pid_t exec(const char *file)
 {
   //Bad pointer
-  if(!validate_address((void*)file))
+  if (!validate_address((void *)file))
     exit(-1);
   struct thread *t = thread_current();
   t->exec_wait_called = true;
@@ -172,7 +174,7 @@ static int wait(pid_t pid)
 static bool create(const char *file, unsigned initial_size)
 {
   //If no file name OR bad pointer
-  if (file == NULL || !validate_address((void*)file))
+  if (file == NULL || !validate_address((void *)file))
     exit(-1);
   else
   {
@@ -185,16 +187,17 @@ static bool create(const char *file, unsigned initial_size)
 
 static bool remove(const char *file)
 {
+  bool result;
   //If no file name
   if (file == NULL)
     exit(-1);
   else
   {
     lock_acquire(&file_lock);
-    bool result = filesys_remove(file);
+    result = filesys_remove(file);
     lock_release(&file_lock);
-    return result;
   }
+  return result;
 }
 
 static int open(const char *file)
@@ -225,32 +228,54 @@ static int open(const char *file)
   return dfm->fd;
 }
 
-static int filesize(int fd UNUSED)
+static int filesize(int fd)
 {
-  //YET TO IMPLEMENT
-  //We need to use file_lenght() here
-  return 1;
+  int code = -1;
+  //Find the file
+  df_map *df = get_file(fd, false);
+  if (df != NULL)
+    code = file_length(df->f);
+  return code;
 }
 
-static int read(int fd UNUSED, void *buffer, unsigned length UNUSED)
+static int read(int fd, void *buffer, unsigned length)
 {
+  int code = -1;
   if (buffer == NULL || !validate_address(buffer))
     exit(-1);
-  return 1;
+  else if (fd == 0)
+    code = input_getc();
+  else
+  {
+    //Find the file
+    df_map *df = get_file(fd, false);
+    if (df != NULL)
+      code = file_read(df->f, buffer, length);
+  }
+  return code;
 }
 
 static int write(int fd, const void *buffer, unsigned length)
 {
-  if (buffer == NULL || !validate_address((void*)buffer))
+  int code = -1;
+  if (buffer == NULL || !validate_address((void *)buffer))
     exit(-1);
   //Write to console
-  else if(fd==1)
+  else if (fd == 1)
+  {
     putbuf(buffer, length);
+    code = 1;
+  }
   //Unknown case
   else
-    exit(-1);
+  {
+    //Find the file
+    df_map *df = get_file(fd, false);
+    if (df != NULL)
+      code = file_write(df->f, buffer, length);
+  }
   //Success
-  return 1;
+  return code;
 }
 
 static void seek(int fd UNUSED, unsigned position UNUSED)
@@ -269,22 +294,42 @@ static unsigned tell(int fd UNUSED)
 static void close(int fd)
 {
   struct thread *t = thread_current();
-  df_map *fdm;
+  df_map *dfm;
   struct list_elem *l;
   for (l = list_begin(&t->desc_file_list); l != list_end(&t->desc_file_list); l = list_next(l))
   {
-    fdm = list_entry(l, df_map, elem);
-    if(fd == fdm->fd){
-      file_close(fdm->f);
+    dfm = list_entry(l, df_map, elem);
+    if (fd == dfm->fd)
+    {
+      //Close the file
+      file_close(dfm->f);
+      //Remove from descriptor list
       list_remove(l);
+      //Free memory
+      free(dfm);
+      break;
     }
   }
 }
 
-// /* Returns NULL if no file or illegal file desriptor */
-// struct file* get_file(unsigned int fd){
-//   struct thread *t=thread_current();
-//   if(list_empty(t))
-//     return NULL;
-  
-// }
+/* Returns NULL if no file or illegal file desriptor */
+void *get_file(int fd, bool return_file)
+{
+  struct thread *t = thread_current();
+  df_map *dfm = NULL;
+
+  //If file descriptor is missing
+  if (list_empty(&t->desc_file_list))
+    return NULL;
+  //Search for given fd in the list
+  for (struct list_elem *l = list_begin(&t->desc_file_list); l != list_end(&t->desc_file_list); l = list_next(l))
+  {
+    dfm = list_entry(l, df_map, elem);
+    if (fd == dfm->fd)
+      break;
+  }
+
+  if (dfm->fd == fd)
+    return (return_file) ? (void *)dfm->f : (void *)dfm;
+  return NULL;
+}

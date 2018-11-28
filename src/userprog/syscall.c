@@ -13,17 +13,17 @@
 #include "userprog/process.h"
 /* For file operations */
 #include "filesys/filesys.h"
+/* For file allow write */
+#include "filesys/file.h"
+/* For malloc */
+#include "threads/malloc.h"
+
+static void syscall_handler(struct intr_frame *);
 
 //Added
 typedef int pid_t;
-static bool validate_address(char *address);
-static void safe_memory_access(void *addr);
-static void syscall_handler(struct intr_frame *);
-//Added
-/* For lock */
-struct lock file_lock;
-int x;
-//Added
+static bool validate_address(void *address);
+static void safe_memory_access(int *addr);
 /* Function prototypes from /usr/sycall.h */
 static void halt(void) NO_RETURN;
 static void exit(int status) NO_RETURN;
@@ -38,6 +38,8 @@ static int write(int fd, const void *buffer, unsigned length);
 static void seek(int fd, unsigned position);
 static unsigned tell(int fd);
 static void close(int fd);
+/* For lock */
+struct lock file_lock;
 
 void syscall_init(void)
 {
@@ -52,73 +54,72 @@ syscall_handler(struct intr_frame *f UNUSED)
   //Original
   // printf ("system call!\n");
   // thread_exit ();
-  int *esp ;
+
   //Added
-  safe_memory_access(f->esp);
-  switch (*(int *)f->esp)
+  int *esp = f->esp,x;
+  safe_memory_access(esp);
+  switch (*esp)
   {
   case SYS_HALT:
     halt();
     break;
   case SYS_EXIT:
-    exit(*((int *)f->esp + 1));
+    exit(*(esp + 1));
     break;
   case SYS_EXEC:
-    esp = f->esp;
     x = is_user_vaddr((char *)*(esp + 1))  && pagedir_get_page(thread_current()->pagedir, (char *)*(esp + 1)) != NULL;
     if (!x)
       exit(-1);
-    exec((char *)(*((int *)f->esp + 1)));
+    f->eax = exec((char *)*(esp + 1));
     break;
   case SYS_WAIT:
-    wait((*((pid_t *)f->esp + 1)));
+    wait(*(esp + 1));
     break;
   case SYS_CREATE:
-    esp = f->esp;
     x = is_user_vaddr((char *)*(esp + 1))  && pagedir_get_page(thread_current()->pagedir, (char *)*(esp + 1)) != NULL;
     if (!x)
       exit(-1);
-    // validate_address((char *)*(esp + 1));
-    f->eax = create((char *)(*((int *)f->esp + 1)), *((int *)f->esp + 2));
+    validate_address((char *)*(esp + 1));
+    f->eax = create((char *)*(esp + 1), *(esp + 2));
     break;
   case SYS_REMOVE:
-    f->eax = filesize((*((int *)f->esp + 1)));
+    f->eax = filesize(*(esp + 1));
     break;
   case SYS_OPEN:
-    open((char *)(*((int *)f->esp + 2)));
+    f->eax = open((char *)*(esp + 2));
     break;
   case SYS_FILESIZE:
     break;
   case SYS_READ:
-    read(*((int *)f->esp + 1), (char *)(*((int *)f->esp + 2)), *((size_t *)f->esp + 3));
+    f->eax = read(*(esp + 1), (char *)*(esp + 2), *(esp + 3));
     break;
   case SYS_WRITE:
-    f->eax = write(*((int *)f->esp + 1), (char *)(*((int *)f->esp + 2)), *((size_t *)f->esp + 3));
+    f->eax = write(*(esp + 1), (char *)*(esp + 2), *(esp + 3));
     break;
   case SYS_SEEK:
-    seek((*((int *)f->esp + 1)), (size_t)(*((int *)f->esp + 2)));
+    seek(*(esp + 1), *(esp + 2));
     break;
   case SYS_TELL:
-    f->eax = tell((*((int *)f->esp + 1)));
+    f->eax = tell(*(esp + 1));
     break;
   case SYS_CLOSE:
-    close(*((int *)f->esp + 1));
+    close(*(esp + 1));
     break;
   default:
     printf("error %d", (*(int *)f->esp));
   }
 }
 
-static void safe_memory_access(void *addr)
+static void safe_memory_access(int *addr)
 {
   //There are at max 3 arguments that will be in the stack
-  int safe_access = validate_address((int *)addr) + validate_address((int *)addr + 1) +
-                    validate_address((int *)addr + 2) + validate_address((int *)addr + 3);
+  int safe_access = validate_address(addr) + validate_address(addr + 1) +
+                    validate_address(addr + 2) + validate_address(addr + 3);
   if (safe_access != 4)
     exit(-1);
 }
 
-static bool validate_address(char *address)
+static bool validate_address(void *address)
 {
   // check if the pointer is within PHYS_BASE or in the thread's page
   return is_user_vaddr(address) && pagedir_get_page(thread_current()->pagedir, address) != NULL;
@@ -132,17 +133,13 @@ static void halt()
 static void exit(int status)
 {
   struct thread *t = thread_current();
-  struct child_exit_status *ces = malloc(sizeof(struct child_exit_status));
+  // struct child_exit_status *ces = malloc(sizeof(struct child_exit_status));
 
   printf("%s: exit(%d)\n", thread_current()->name, status);
   if (t->parent != NULL)
   {
-    // printf("Exiting (child is) Thread name is %s\n",t->name);
     t = t->parent;
-    //Place holder. Need to fix it.
-    // printf("Exiting (Parent is)Thread name is %s\n",t->name);
     sema_up(&t->parent_sema);
-    // printf("done\n");
   }
   thread_exit();
 }
@@ -151,7 +148,6 @@ static pid_t exec(const char *file)
 {
   struct thread *t = thread_current();
   t->exec_wait_called = true;
-  // printf("tid=%d is calling exec\n",t->tid);
   process_execute(file);
   sema_down(&t->parent_sema);
   t->exec_wait_called = false;
@@ -164,7 +160,7 @@ static int wait(pid_t pid)
   t->exec_wait_called = true;
   int status = process_wait(pid);
   t->exec_wait_called = false;
-  return  status;
+  return status;
 }
 
 static bool create(const char *file, unsigned initial_size)
@@ -181,7 +177,7 @@ static bool create(const char *file, unsigned initial_size)
   }
 }
 
-static bool remove(const char *file) 
+static bool remove(const char *file)
 {
   //If no file name
   if (file == NULL)
@@ -200,7 +196,7 @@ static int open(const char *file)
   if (file == NULL)
     exit(-1);
   struct file *f = filesys_open(file);
-  if(f == NULL)
+  if (f == NULL)
     exit(-1);
 
   return 1;

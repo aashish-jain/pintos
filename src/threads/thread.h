@@ -114,6 +114,7 @@ struct thread
     struct semaphore parent_sema;       /* Semaphore to put the thread to sleep / wake up*/
     int child_exec_status;              /* Contains the exec status of child if exec was called */
     struct list child_status_list;      /* Lists containing the exit statuses of a thread's                                               children*/
+    struct file *exe_file;               /* Pointer to the executable file */
 #endif
 
     /* Owned by thread.c. */

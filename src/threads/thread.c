@@ -576,6 +576,7 @@ init_thread (struct thread *t, const char *name, int priority)
     t->exec_wait_called = false;
     t->child_exec_status=0;
     list_init(&t->child_status_list);
+    t->exe_file = NULL;
   #endif
   //Added ends
 

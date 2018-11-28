@@ -269,6 +269,10 @@ load (const char *file_name, void (**eip) (void), void **esp)
     goto done;
   }
 
+  //Denying write to executables
+  t->exe_file = file;
+  file_deny_write(t->exe_file);
+
   /* Read and verify executable header. */
   if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
       || memcmp (ehdr.e_ident, "\177ELF\1\1\1", 7)
@@ -356,7 +360,8 @@ load (const char *file_name, void (**eip) (void), void **esp)
 
  done:
   /* We arrive here whether the load is successful or not. */
-  file_close (file);
+  //Commented to make sure file is open and write is denied
+  // file_close (file);
 
   //Added
   /* Any process can only call exec once after which it waits so no race condition*/
@@ -524,7 +529,7 @@ static void init_stack(void **esp, const char *file_name)
   int argc=0, i, n_bytes;
   char *token, *save_ptr;
 
-  //Word size is the size of the pointer vairables
+  //Word size is the size of the pointer
   int word_size = sizeof(char*);
 
   /*The number of arguments can't exceed the 

@@ -366,8 +366,8 @@ load (const char *file_name, void (**eip) (void), void **esp)
   /* Any process can only call exec once after which it waits so no race condition*/
   if (t->parent->exec_wait_called)
   {
-    /* Communicate exit status to the parent. Returns -1 if not successful else tid*/
-    t->parent->child_exec_status = (success)? t->tid : -1;
+    /* Communicate exec status to the parent. Returns -1 if not successful else tid*/
+    t->parent->exec_success = success;
     sema_up(&t->parent->parent_sema);
   }
   return success;

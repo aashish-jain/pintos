@@ -152,15 +152,16 @@ static void exit(int status)
 
 static pid_t exec(const char *file)
 {
+  pid_t pid;
   //Bad pointer
   if (!validate_address((void *)file))
     exit(-1);
   struct thread *t = thread_current();
   t->exec_wait_called = true;
-  process_execute(file);
+  pid = process_execute(file);
   sema_down(&t->parent_sema);
   t->exec_wait_called = false;
-  return t->child_exec_status;
+  return (t->exec_success)?pid:-1;
 }
 
 static int wait(pid_t pid)

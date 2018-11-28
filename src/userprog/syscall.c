@@ -79,7 +79,7 @@ syscall_handler(struct intr_frame *f UNUSED)
     exit(*(esp + 1));
     break;
   case SYS_EXEC:
-    f->eax = exec((char *)*(esp + 1));
+    f->eax = exec((const char *)*(esp + 1));
     break;
   case SYS_WAIT:
     wait(*(esp + 1));

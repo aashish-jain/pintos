@@ -93,6 +93,7 @@ syscall_handler(struct intr_frame *f UNUSED)
     f->eax = open((char *)*(esp + 1));
     break;
   case SYS_FILESIZE:
+    f->eax = filesize(*(esp + 1));
     break;
   case SYS_READ:
     f->eax = read(*(esp + 1), (char *)*(esp + 2), *(esp + 3));
@@ -239,7 +240,7 @@ static int filesize(int fd)
 
 static int read(int fd, void *buffer, unsigned length)
 {
-  int code = -1;
+  off_t code = -1;
   if (buffer == NULL || !validate_address(buffer))
     exit(-1);
   else if (fd == 0)
@@ -277,17 +278,23 @@ static int write(int fd, const void *buffer, unsigned length)
   return code;
 }
 
-static void seek(int fd UNUSED, unsigned position UNUSED)
+static void seek(int fd, unsigned position)
 {
-  //YET TO IMPLEMENT
-  //We need to use file_seek() here
+  // int code = -1;
+  //Find the file
+  df_map *df = get_file(fd, false);
+  if (df != NULL)
+    file_seek(df->f,(off_t)position);
+  return;
 }
 
-static unsigned tell(int fd UNUSED)
+static unsigned tell(int fd)
 {
-  //YET TO IMPLEMENT
-  //We need to use file_tell() here
-  return 1;
+  off_t count = -1;
+  df_map *df = get_file(fd, false);
+  if (df != NULL)
+    count = file_tell(df->f);
+  return count;
 }
 
 static void close(int fd)

@@ -122,18 +122,20 @@ int process_wait(tid_t child_tid)
     for (struct list_elem *l = list_begin(&p_thread->child_status_list); l != list_end(&p_thread->child_status_list); l = list_next(l))
     {
       ces = list_entry(l, struct child_exit_status, elem);
-      printf("Read ces->status is %d for tid=%d\n", ces->exit_status, ces->tid);
+      // printf("Read ces->status is %d for tid=%d\n", ces->exit_status, ces->tid);
       if (child_tid == ces->tid)
         break;
     }
     //If child was found, read it and remove from the list
     if (ces->tid == child_tid)
     {
+      // printf("Copeid status\n");
       status = ces->exit_status;
       list_remove(&ces->elem);
       free(ces);
     }
   }
+  // printf("Status is %d\n",status);
   //TODO free CES
   return status;
 }

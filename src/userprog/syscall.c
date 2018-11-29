@@ -149,8 +149,8 @@ void exit(int status)
     ces->tid = t->tid;
     t = t->parent;
     list_push_back(&t->child_status_list, &ces->elem);
-    // printf("Added tname=%s tid=%d with status=%d to the list\n",t->name,ces->tid,status);
-    sema_up(&t->parent_sema);
+    if(!t->exec_called)
+      sema_up(&t->parent_sema);
   }
   thread_exit();
 }

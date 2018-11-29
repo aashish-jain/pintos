@@ -47,11 +47,15 @@ tid_t process_execute(const char *file_name)
 
   //Added
   /* thread name must be executable name - getting the name */
-  char *cmd_end;
-  file_name = strtok_r((char *)file_name, " ", &cmd_end);
+  //14 character thread name limit
+  char *t_name = malloc(15);
+  int i;
+  for(i=0; i<14 && file_name[i]!=' ' && file_name[i]!='\0';i++)
+    t_name[i]=file_name[i];
+  t_name[i] = '\0';
 
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create(file_name, PRI_DEFAULT, start_process, fn_copy);
+  tid = thread_create(t_name, PRI_DEFAULT, start_process, fn_copy);
 
   if (tid == TID_ERROR)
     palloc_free_page(fn_copy);

@@ -166,11 +166,7 @@ static pid_t exec(const char *file)
 
 static int wait(pid_t pid)
 {
-  struct thread *t = thread_current();
-  t->exec_wait_called = true;
-  int status = process_wait(pid);
-  t->exec_wait_called = false;
-  return status;
+  return process_wait(pid);
 }
 
 static bool create(const char *file, unsigned initial_size)

@@ -36,7 +36,7 @@ static bool validate_address(void *address);
 static void safe_memory_access(int *addr);
 /* Function prototypes from /usr/sycall.h */
 static void halt(void) NO_RETURN;
-static void exit(int status) NO_RETURN;
+// static void exit(int status) NO_RETURN;
 static pid_t exec(const char *file);
 static int wait(pid_t pid);
 static bool create(const char *file, unsigned initial_size);
@@ -135,7 +135,7 @@ static void halt()
   shutdown_power_off();
 }
 
-static void exit(int status)
+void exit(int status)
 {
   struct thread *t = thread_current();
   struct child_exit_status *ces = malloc(sizeof(struct child_exit_status));

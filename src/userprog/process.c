@@ -106,12 +106,13 @@ int process_wait(tid_t child_tid)
   //Added
   struct thread *c_thread = get_thread(child_tid), *p_thread = thread_current();
   struct child_exit_status *ces=NULL;
+  int status = -1;
   //If child thread doesn't exist or already waited
   if (c_thread == NULL)
   {
     //List empty  so can't wait again
     if (list_empty(&p_thread->child_status_list))
-      return -1;
+      return status;
     //Try searching if it has already terminated
     for (struct list_elem *l = list_begin(&p_thread->child_status_list); l != list_end(&p_thread->child_status_list); l = list_next(l))
     {
@@ -120,13 +121,13 @@ int process_wait(tid_t child_tid)
         break;
     }
 
-    return (ces!=NULL && ces->tid == child_tid)?ces->exit_status:-1;
+    return (ces!=NULL && ces->tid == child_tid)?ces->exit_status:status;
   }
   //Else if child found and parent is caller
   else if (c_thread->parent == p_thread)
     sema_down(&p_thread->parent_sema);
   //Get value from the list of child statuses
-  return -1;
+  return status;
 }
 
 /* Free the current process's resources. */

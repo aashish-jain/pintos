@@ -36,7 +36,7 @@ static bool validate_address(void *address);
 static void safe_memory_access(int *addr);
 /* Function prototypes from /usr/sycall.h */
 static void halt(void) NO_RETURN;
-static void exit(int status) NO_RETURN;
+// static void exit(int status) NO_RETURN;
 static pid_t exec(const char *file);
 static int wait(pid_t pid);
 static bool create(const char *file, unsigned initial_size);
@@ -66,7 +66,6 @@ syscall_handler(struct intr_frame *f UNUSED)
   //Original
   // printf ("system call!\n");
   // thread_exit ();
-
   //Added
   int *esp = f->esp;
   safe_memory_access(esp);
@@ -136,7 +135,7 @@ static void halt()
   shutdown_power_off();
 }
 
-static void exit(int status)
+void exit(int status)
 {
   struct thread *t = thread_current();
   struct child_exit_status *ces = malloc(sizeof(struct child_exit_status));
@@ -241,7 +240,7 @@ static int filesize(int fd)
 
 static int read(int fd, void *buffer, unsigned length)
 {
-  int code = -1;
+  off_t code = -1;
   if (buffer == NULL || !validate_address(buffer))
     exit(-1);
   else if (fd == 0)

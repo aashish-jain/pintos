@@ -41,8 +41,6 @@ static struct thread *initial_thread;
 /* Lock used by allocate_tid(). */
 static struct lock tid_lock;
 
-// Added begins
-
 /* Using semaphores for sleeping */
 struct list sleep_list;
 struct semaphore sleep_list_sema;
@@ -557,6 +555,8 @@ init_thread (struct thread *t, const char *name, int priority)
   t->tick_to_wake = 0;
   t->init_priority = priority;
   list_init(&t->lock_list);
+
+  //Added
 
   //Only for mlfqs
   if(thread_mlfqs){

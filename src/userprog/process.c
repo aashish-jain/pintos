@@ -111,17 +111,16 @@ int process_wait(tid_t child_tid)
   if (c_thread == NULL)
   {
     //List empty  so can't wait again
-    if (list_empty(&p_thread->child_status_list))
-      return status;
-    //Try searching if it has already terminated
-    for (struct list_elem *l = list_begin(&p_thread->child_status_list); l != list_end(&p_thread->child_status_list); l = list_next(l))
-    {
-      ces = list_entry(l, struct child_exit_status, elem);
-      if (child_tid == ces->tid)
-        break;
-    }
+    if (!list_empty(&p_thread->child_status_list))
+      //Try searching if it has already terminated
+      for (struct list_elem *l = list_begin(&p_thread->child_status_list); l != list_end(&p_thread->child_status_list); l = list_next(l))
+      {
+        ces = list_entry(l, struct child_exit_status, elem);
+        if (child_tid == ces->tid)
+          break;
+      }
 
-    return (ces!=NULL && ces->tid == child_tid)?ces->exit_status:status;
+    status = (ces!=NULL && ces->tid == child_tid)?ces->exit_status:status;
   }
   //Else if child found and parent is caller
   else if (c_thread->parent == p_thread)

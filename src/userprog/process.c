@@ -55,6 +55,7 @@ tid_t process_execute(const char *file_name)
 
   if (tid == TID_ERROR)
     palloc_free_page(fn_copy);
+  
   return tid;
 }
 
@@ -105,22 +106,35 @@ int process_wait(tid_t child_tid)
 {
   //Added
   struct thread *c_thread = get_thread(child_tid), *p_thread = thread_current();
-  struct child_exit_status *ces=NULL;
+  struct child_exit_status *ces = NULL;
   int status = -1;
+
+  // printf("%s has to wait for tid=%d\n",p_thread->name ,child_tid);
+  //If child found and parent is caller, wait
+  if (c_thread != NULL && c_thread->parent == p_thread)
+  {
+    // printf("Waiting for child_tid %d \n", child_tid);
+    sema_down(&p_thread->parent_sema);
+  }
   //If the thread has already terminated and is a child
-  if (c_thread == NULL && !list_empty(&p_thread->child_status_list))
+  if (!list_empty(&p_thread->child_status_list))
+  {
     for (struct list_elem *l = list_begin(&p_thread->child_status_list); l != list_end(&p_thread->child_status_list); l = list_next(l))
     {
       ces = list_entry(l, struct child_exit_status, elem);
+      // printf("Read ces->status is %d for tid=%d\n", ces->exit_status, ces->tid);
       if (child_tid == ces->tid)
         break;
     }
-  //Else if child found and parent is caller, wait
-  else if (c_thread->parent == p_thread)
-    sema_down(&p_thread->parent_sema);
-
-  //Get value from the list of child statuses
-  status = (ces!=NULL && ces->tid == child_tid)?ces->exit_status:status;
+    //If child was found, read it and remove from the list
+    if (ces->tid == child_tid)
+    {
+      status = ces->exit_status;
+      list_remove(&ces->elem);
+      free(ces);
+    }
+  }
+  //TODO free CES
   return status;
 }
 

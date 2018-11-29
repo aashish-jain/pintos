@@ -110,7 +110,7 @@ struct thread
     //Added
     struct thread* parent;              /* Points to the parent thread 
                                           (no parents for main and idle)*/
-    bool exec_wait_called;              /* Boolean variable to indicate if thread is sleeping*/
+    bool exec_called;              /* Boolean variable to indicate if thread is sleeping*/
     bool exec_success;                  /* True if exec is success else false */
     struct semaphore parent_sema;       /* Semaphore to put the thread to sleep / wake up*/
     struct list child_status_list;      /* Lists containing the exit statuses of a thread's                                               children*/

@@ -157,10 +157,10 @@ static pid_t exec(const char *file)
   if (!validate_address((void *)file))
     exit(-1);
   struct thread *t = thread_current();
-  t->exec_wait_called = true;
+  t->exec_called = true;
   pid = process_execute(file);
   sema_down(&t->parent_sema);
-  t->exec_wait_called = false;
+  t->exec_called = false;
   return (t->exec_success) ? pid : -1;
 }
 

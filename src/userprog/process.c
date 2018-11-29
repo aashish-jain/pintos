@@ -364,7 +364,7 @@ done:
 
   //Added
   /* Any process can only call exec once after which it waits so no race condition*/
-  if (t->parent->exec_wait_called)
+  if (t->parent->exec_called)
   {
     /* Communicate exec status to the parent. Returns -1 if not successful else tid*/
     t->parent->exec_success = success;

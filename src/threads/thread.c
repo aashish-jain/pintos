@@ -574,7 +574,7 @@ init_thread (struct thread *t, const char *name, int priority)
   #ifdef USERPROG
     t->parent = (t!=initial_thread && t!=idle_thread)? thread_current() : NULL;
     sema_init(&t->parent_sema,0);
-    t->exec_wait_called = false;
+    t->exec_called = false;
     t->exec_success=false;
     list_init(&t->child_status_list);
     t->exe_file = NULL;

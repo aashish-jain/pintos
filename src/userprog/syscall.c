@@ -140,7 +140,7 @@ void exit(int status)
   struct thread *t = thread_current();
   struct child_exit_status *ces;
   printf("%s: exit(%d)\n", t->name, status);
-  // printf("###%s: exit(%d) tid =%d\n", t->name, status, t->tid);
+  printf("###%s: exit(%d) tid =%d\n", t->name, status, t->tid);
   //If parent is alive, then add it to child exit list
   if (t->parent != NULL)
   {
@@ -149,7 +149,7 @@ void exit(int status)
     ces->tid = t->tid;
     t = t->parent;
     list_push_back(&t->child_status_list, &ces->elem);
-    // printf("Added tname=%s tid=%d with status=%d to the list\n",t->name,ces->tid,status);
+    printf("Added tname=%s tid=%d with status=%d to the list\n",t->name,ces->tid,status);
     sema_up(&t->parent_sema);
   }
   thread_exit();

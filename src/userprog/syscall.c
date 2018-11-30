@@ -152,6 +152,27 @@ void exit(int status)
     if(!t->exec_called)
       sema_up(&t->parent_sema);
   }
+
+  //TODO Close the exe_file if exists
+
+  //Close all the file descriptors
+  // df_map *dfm;
+  // struct list_elem *l;
+  // for(l = list_begin(&t->desc_file_list); l!=list_end(&t->desc_file_list);l=list_next(l)){
+  //   printf("Freeing dfm\n");
+  //   l=list_pop_front(&t->desc_file_list);
+  //   dfm=list_entry(l, df_map, elem);
+  //   file_close(dfm->f);
+  //   free(dfm);
+  // }
+
+  // //Free all the child statuses
+  // while(!list_empty(&t->child_status_list)){
+  //   printf("Freeing ces\n");
+  //   l=list_pop_front(t->child_status_list);
+  //   ces = list_entry(l, struct child_exit_status, elem);
+  //   free(ces);
+  // }
   thread_exit();
 }
 
@@ -216,8 +237,9 @@ static int open(const char *file)
 
   struct thread *t = thread_current();
   df_map *dfm = malloc(sizeof(df_map));
+  lock_acquire(&file_lock);
   dfm->f = filesys_open(file);
-
+  lock_release(&file_lock);
   //Missing file
   if (dfm->f == NULL)
     return -1;

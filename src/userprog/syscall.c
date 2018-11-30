@@ -111,7 +111,7 @@ syscall_handler(struct intr_frame *f UNUSED)
     close(*(esp + 1));
     break;
   default:
-    printf("error %d", (*(int *)f->esp));
+    exit(-1);
   }
 }
 
@@ -153,7 +153,12 @@ void exit(int status)
       sema_up(&t->parent_sema);
   }
 
-  //TODO Close the exe_file if exists
+  // //Close the exe_file if exists
+  // if(t->exe_file){
+  //   // printf("Closing exe file");
+  //   file_allow_write(t->exe_file);
+  //   file_close(t->exe_file);
+  // }
 
   //Close all the file descriptors
   // df_map *dfm;
@@ -182,6 +187,7 @@ static pid_t exec(const char *file)
   //Bad pointer
   if (!validate_address((void *)file))
     exit(-1);
+  lock_acquire(&file_lock);
   struct thread *t = thread_current();
   t->exec_called = true;
   // printf("EXECing %s\n",file);
@@ -189,6 +195,7 @@ static pid_t exec(const char *file)
   // printf("Exec Returned pid=%d\n",pid);
   sema_down(&t->parent_sema);
   t->exec_called = false;
+  lock_release(&file_lock);
   return (t->exec_success) ? pid : -1;
 }
 
@@ -258,8 +265,11 @@ static int filesize(int fd)
   int code = -1;
   //Find the file
   df_map *df = get_file(fd, false);
-  if (df != NULL)
+  if (df != NULL){
+    lock_acquire(&file_lock);
     code = file_length(df->f);
+    lock_release(&file_lock);
+  }
   return code;
 }
 
@@ -274,8 +284,11 @@ static int read(int fd, void *buffer, unsigned length)
   {
     //Find the file
     df_map *df = get_file(fd, false);
-    if (df != NULL)
+    if (df != NULL){
+      lock_acquire(&file_lock);
       code = file_read(df->f, buffer, length);
+      lock_release(&file_lock);
+    }
   }
   return code;
 }
@@ -296,8 +309,11 @@ static int write(int fd, const void *buffer, unsigned length)
   {
     //Find the file
     df_map *df = get_file(fd, false);
-    if (df != NULL)
+    if (df != NULL){
+      lock_acquire(&file_lock);
       code = file_write(df->f, buffer, length);
+      lock_release(&file_lock);
+    }
   }
   //Success
   return code;
@@ -306,8 +322,11 @@ static int write(int fd, const void *buffer, unsigned length)
 static void seek(int fd, unsigned position)
 {
   df_map *df = get_file(fd, false);
-  if (df != NULL)
+  if (df != NULL){
+    lock_acquire(&file_lock);
     file_seek(df->f, (off_t)position);
+    lock_release(&file_lock);
+  }
   return;
 }
 
@@ -315,8 +334,11 @@ static unsigned tell(int fd)
 {
   off_t count = -1;
   df_map *df = get_file(fd, false);
-  if (df != NULL)
+  if (df != NULL){
+    lock_acquire(&file_lock);
     count = file_tell(df->f);
+    lock_release(&file_lock);
+  }
   return count;
 }
 
@@ -331,11 +353,13 @@ static void close(int fd)
     if (fd == dfm->fd)
     {
       //Close the file
+      lock_acquire(&file_lock);
       file_close(dfm->f);
       //Remove from descriptor list
       list_remove(l);
       //Free memory
       free(dfm);
+      lock_release(&file_lock);
       break;
     }
   }

@@ -162,20 +162,20 @@ void exit(int status)
   }
 
   //Close all the file descriptors
-  // df_map *dfm;
-  // struct list_elem *l;
-  // for(l = list_begin(&t->desc_file_list); l!=list_end(&t->desc_file_list);l=list_next(l)){
-  //   printf("Freeing dfm\n");
-  //   l=list_pop_front(&t->desc_file_list);
-  //   dfm=list_entry(l, df_map, elem);
-  //   file_close(dfm->f);
-  //   free(dfm);
-  // }
+  df_map *dfm;
+  struct list_elem *l;
+  while(!list_empty(&t->desc_file_list)){
+    // printf("Freeing dfm\n");
+    l=list_pop_front(&t->desc_file_list);
+    dfm=list_entry(l, df_map, elem);
+    file_close(dfm->f);
+    free(dfm);
+  }
 
   // //Free all the child statuses
   // while(!list_empty(&t->child_status_list)){
-  //   printf("Freeing ces\n");
-  //   l=list_pop_front(t->child_status_list);
+  //   // printf("Freeing ces\n");
+  //   l=list_pop_front(&t->child_status_list);
   //   ces = list_entry(l, struct child_exit_status, elem);
   //   free(ces);
   // }

@@ -137,20 +137,22 @@ static void halt()
 
 void exit(int status)
 {
-  struct thread *t = thread_current();
+  struct thread *t = thread_current(), *p;
   struct child_exit_status *ces;
+
+  p = get_thread(t->parent);
   printf("%s: exit(%d)\n", t->name, status);
-  // printf("###%s: exit(%d) tid =%d\n", t->name, status, t->tid);
+
   //If parent is alive, then add it to child exit list
-  if (t->parent != NULL)
+  if (p != NULL)
   {
     ces =  malloc(sizeof(struct child_exit_status));
     ces->exit_status = status;
     ces->tid = t->tid;
-    t = t->parent;
-    list_push_back(&t->child_status_list, &ces->elem);
-    if(!t->exec_called)
-      sema_up(&t->parent_sema);
+    list_push_back(&p->child_status_list, &ces->elem);
+    //Beacuse exec sema ups parent sema in the load
+    if(!p->exec_called)
+      sema_up(&p->parent_sema);
   }
 
   // //Close the exe_file if exists

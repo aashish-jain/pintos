@@ -108,14 +108,13 @@ struct thread
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
     //Added
-    struct thread* parent;              /* Points to the parent thread 
-                                          (no parents for main and idle)*/
-    bool exec_called;              /* Boolean variable to indicate if thread is sleeping*/
+    tid_t parent;                /* Parent's pid(no parents for main and idle)*/
+    bool exec_called;                   /* Boolean variable to indicate if thread is sleeping*/
     bool exec_success;                  /* True if exec is success else false */
     struct semaphore parent_sema;       /* Semaphore to put the thread to sleep / wake up*/
     struct list child_status_list;      /* Lists containing the exit statuses of a thread's                                               children*/
-    struct file *exe_file;               /* Pointer to the executable file */
-    struct list desc_file_list;     /* Descriptor file map list*/
+    struct file *exe_file;              /* Pointer to the executable file */
+    struct list desc_file_list;         /* Descriptor file map list*/
 #endif
 
     /* Owned by thread.c. */

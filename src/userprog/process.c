@@ -115,7 +115,7 @@ int process_wait(tid_t child_tid)
 
   // printf("%s has to wait for tid=%d\n",p_thread->name ,child_tid);
   //If child found and parent is caller, wait
-  if (c_thread != NULL && c_thread->parent == p_thread)
+  if (c_thread != NULL && c_thread->parent == p_thread->tid)
   {
     // printf("Waiting for child_tid %d \n", child_tid);
     sema_down(&p_thread->parent_sema);
@@ -384,11 +384,12 @@ done:
 
   //Added
   /* Any process can only call exec once after which it waits so no race condition*/
-  if (t->parent->exec_called)
+  t=get_thread(t->parent);
+  if (t!=NULL && t->exec_called)
   {
     /* Communicate exec status to the parent. Returns -1 if not successful else tid*/
-    t->parent->exec_success = success;
-    sema_up(&t->parent->parent_sema);
+    t->exec_success = success;
+    sema_up(&t->parent_sema);
   }
   return success;
 }

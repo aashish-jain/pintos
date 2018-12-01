@@ -572,7 +572,7 @@ init_thread (struct thread *t, const char *name, int priority)
 
 
   #ifdef USERPROG
-    t->parent = (t!=initial_thread && t!=idle_thread)? thread_current() : NULL;
+    t->parent = (t!=initial_thread && t!=idle_thread)? thread_current()->tid : -1;
     sema_init(&t->parent_sema,0);
     t->exec_called = false;
     t->exec_success=false;
@@ -890,7 +890,7 @@ struct thread *get_thread(tid_t tid){
   struct thread *t;
   struct list_elem *l;
   /* Only main thread in the list */
-  if(list_begin(&all_list) == list_end(&all_list))
+  if(list_begin(&all_list) == list_end(&all_list) || tid==-1)
     return NULL;
   for (l = list_begin(&all_list); l != list_end(&all_list); l = list_next(l))
   {

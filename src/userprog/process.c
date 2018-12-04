@@ -33,10 +33,6 @@ tid_t process_execute(const char *file_name)
   char *fn_copy;
   tid_t tid;
 
-  /* Temporay Fix for long wait times of bad*/
-  // if (file_name[0] == 'b' && file_name[1] == 'a' && file_name[2] == 'd')
-  //   return -1;
-
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
   fn_copy = palloc_get_page(0);
@@ -126,14 +122,12 @@ int process_wait(tid_t child_tid)
     for (struct list_elem *l = list_begin(&p_thread->child_status_list); l != list_end(&p_thread->child_status_list); l = list_next(l))
     {
       ces = list_entry(l, struct child_exit_status, elem);
-      // printf("Read ces->status is %d for tid=%d\n", ces->exit_status, ces->tid);
       if (child_tid == ces->tid)
         break;
     }
     //If child was found, read it and remove from the list
     if (ces->tid == child_tid)
     {
-      // printf("Copeid status\n");
       status = ces->exit_status;
       list_remove(&ces->elem);
       free(ces);

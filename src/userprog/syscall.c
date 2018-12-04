@@ -156,29 +156,25 @@ void exit(int status)
   }
 
   //Close the exe_file if exists
-  if(t->exe_file){
-    // printf("Closing exe file");
+  if(t->exe_file)
     file_close(t->exe_file);
-  }
 
   //Close all the file descriptors
   df_map *dfm;
   struct list_elem *l;
   while(!list_empty(&t->desc_file_list)){
-    // printf("Freeing dfm\n");
     l=list_pop_front(&t->desc_file_list);
     dfm=list_entry(l, df_map, elem);
     file_close(dfm->f);
     free(dfm);
   }
 
-  // //Free all the child statuses
-  // while(!list_empty(&t->child_status_list)){
-  //   // printf("Freeing ces\n");
-  //   l=list_pop_front(&t->child_status_list);
-  //   ces = list_entry(l, struct child_exit_status, elem);
-  //   free(ces);
-  // }
+  //Free all the child statuses
+  while(!list_empty(&t->child_status_list)){
+    l=list_pop_front(&t->child_status_list);
+    ces = list_entry(l, struct child_exit_status, elem);
+    free(ces);
+  }
   thread_exit();
 }
 
@@ -190,9 +186,7 @@ static pid_t exec(const char *file)
     exit(-1);
   struct thread *t = thread_current();
   t->exec_called = true;
-  // printf("EXECing %s\n",file);
   pid = process_execute(file);
-  // printf("Exec Returned pid=%d\n",pid);
   sema_down(&t->parent_sema);
   t->exec_called = false;
   return (t->exec_success) ? pid : -1;
@@ -297,7 +291,7 @@ static int write(int fd, const void *buffer, unsigned length)
     putbuf(buffer, length);
     code = 1;
   }
-  //Unknown case
+  //Acutal file
   else
   {
     //Find the file

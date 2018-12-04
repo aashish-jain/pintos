@@ -108,7 +108,7 @@ struct thread
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
     //Added
-    tid_t parent;                /* Parent's pid(no parents for main and idle)*/
+    tid_t parent;                       /* Parent's pid(no parents for main and idle)*/
     bool exec_called;                   /* Boolean variable to indicate if thread is sleeping*/
     bool exec_success;                  /* True if exec is success else false */
     struct semaphore parent_sema;       /* Semaphore to put the thread to sleep / wake up*/
